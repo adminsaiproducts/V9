@@ -1,0 +1,42 @@
+{
+  "name": "crm-v9",
+  "version": "1.0.0",
+  "description": "CRM V9: Google Cloud Native Standard Model (GAS + Firestore + Vertex AI)",
+  "main": "index.js",
+  "scripts": {
+    "init": "npm install && npm run setup",
+    "setup": "ts-node --project scripts/tsconfig.json scripts/setup.ts",
+    "diagnose": "npm run setup",
+    "build": "rimraf dist && tsc && shx cp appsscript.json dist/appsscript.json",
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "fix": "gts fix",
+    "push": "npm run build && clasp push -f",
+    "migrate:customers": "ts-node --project scripts/tsconfig.json scripts/migrate_customers.ts",
+    "migrate:relationships": "ts-node --project scripts/tsconfig.json scripts/migrate_relationships.ts",
+    "migrate:masters": "ts-node --project scripts/tsconfig.json scripts/migrate_masters.ts",
+    "migrate:deals": "ts-node --project scripts/tsconfig.json scripts/migrate_deals.ts",
+    "migrate": "npm run migrate:customers && npm run migrate:relationships && npm run migrate:masters && npm run migrate:deals",
+    "upload": "ts-node --project scripts/tsconfig.json scripts/upload_to_firestore.ts"
+  },
+  "keywords": [
+    "gas",
+    "typescript",
+    "firestore",
+    "crm"
+  ],
+  "author": "Gemini F",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.83",
+    "@types/node": "^20.19.25",
+    "csv-parse": "^6.1.0",
+    "firebase-admin": "^13.6.0",
+    "gts": "^5.2.0",
+    "rimraf": "^5.0.5",
+    "shx": "^0.3.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
