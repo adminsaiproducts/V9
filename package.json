@@ -7,7 +7,7 @@
     "init": "npm install && npm run setup",
     "setup": "ts-node --project scripts/tsconfig.json scripts/setup.ts",
     "diagnose": "npm run setup",
-    "build": "rimraf dist && tsc && shx cp appsscript.json dist/appsscript.json",
+    "build": "rimraf dist && webpack && shx cp appsscript.json dist/appsscript.json",
     "lint": "gts lint",
     "clean": "gts clean",
     "fix": "gts fix",
@@ -33,10 +33,14 @@
     "@types/node": "^20.19.25",
     "csv-parse": "^6.1.0",
     "firebase-admin": "^13.6.0",
+    "gas-webpack-plugin": "^2.6.0",
     "gts": "^5.2.0",
     "rimraf": "^5.0.5",
     "shx": "^0.3.4",
+    "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "webpack": "^5.103.0",
+    "webpack-cli": "^6.0.1"
   }
 }
