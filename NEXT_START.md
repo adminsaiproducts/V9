@@ -31,15 +31,20 @@
     npm run diagnose
     ```
 
-## 🎯 Next Phase Tasks (Implementation)
+## 🎯 Next Phase Tasks (Phase 2: Frontend Development)
 
-1.  **Business Logic Implementation:**
-    *   Implement `DealService` with transaction logic.
-    *   Implement `TempleService` using `src/types/firestore.ts`.
-2.  **Vertex AI Integration:**
-    *   Connect `AICacheService` to actual Vertex AI API.
-3.  **Frontend Development:**
-    *   Develop React/HTML frontend for GAS Web App.
+1.  **Frontend Architecture Setup:**
+    *   Initialize **React + Vite** project in `frontend/` directory.
+    *   Configure **Vite SingleFile Plugin** to generate one `index.html` for GAS.
+    *   Setup `clasp` to push the built HTML to `dist/`.
+
+2.  **UI Implementation:**
+    *   **Customer List View:** Fetch and display customers using `doGet` API.
+    *   **Search & Filter:** Implement client-side or server-side search.
+    *   **Detail View:** Show customer details and linked deals.
+
+3.  **Integration:**
+    *   Ensure `google.script.run` (or equivalent API wrapper) works with the deployed Backend.
 
 **合言葉:**
 「V8を忘れろ。V9だけを見ろ。」
