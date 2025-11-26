@@ -16,6 +16,7 @@ export interface Temple extends FirestoreDocument {
   name: string;
   area: string;
   sect: string; // 宗派
+  furigana?: string; // フリガナ
   address?: string;
   phone?: string;
   chiefPriest?: string; // 住職名
@@ -29,6 +30,7 @@ export interface Customer extends FirestoreDocument {
   name: string;
   nameKana?: string;
   type: 'CORPORATION' | 'INDIVIDUAL'; // 法人 | 個人
+  gender?: string; // 性別
 
   // 連絡先
   phone?: string;

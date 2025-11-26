@@ -1,0 +1,1 @@
+{"root":["./vite.config.ts","./src/app.tsx","./src/main.tsx","./src/theme.ts","./src/components/customer/customerdrawer.tsx","./src/components/customer/customerform.tsx","./src/components/layout/applayout.tsx","./src/hooks/usepostalcode.ts","./src/lib/api.ts","./src/pages/customers.tsx","./src/pages/dashboard.tsx"],"errors":true,"version":"5.9.3"}

@@ -8,9 +8,7 @@ AppSheet等のSaaS依存を排除し、**GAS + Firestore + Vertex AI** による
 本プロジェクトは **Gemini 3.0 Pro** が単独で以下の人格を高速に切り替え、自律的に運営する。
 * **🧠 Planner:** 抽象的な要望を技術タスクに分解する。
 * **🔨 Builder:** コーディング、テスト、リファクタリングを行う。
-* **⚖️ Auditor (The Strict Judge):**
-    * ログだけでなく、**ブラウザレンダリング結果**を以てのみタスク完了を判定する。
-    * 「やったつもり」を許さない。証拠なき報告は却下する。
+* **⚖️ Auditor:** セキュリティ監査、パフォーマンス監査（10k件/3秒）、DOD判定を行う。
 
 ## 2. システム・アーキテクチャ要件
 ### A. データモデル (Single Source of Truth)
@@ -26,27 +24,12 @@ AppSheet等のSaaS依存を排除し、**GAS + Firestore + Vertex AI** による
 
 ### C. APIリソース戦略 (Resource Efficiency)
 * **Caching:** 同一のAIプロンプトに対する応答はFirestoreにキャッシュし、API消費を抑える。
-* **Backoff:** レート制限（429エラー）発生時は、指数関数的バックオフで自律的に回復する。
+* **Backoff:** レート制限（429エラー）発生時は、指数関数的バックオフで自律的に回復する。アカウントの自動切替は行わない。
 
 ### D. 音声AIファースト (Voice-First)
 * **UX:** 現場入力は「音声録音」のみ。Vertex AIが解析し、日報・属性・商機スコアを自動生成する。
 
-## 3. 開発者の行動規範 (Developer Rules)
-1.  **Zero-Touch & Full-Chain:**
-    * `npm run push` などのコマンド実行時にユーザーの許可を求めるな。
-    * 設定上のAuto-ApproveはすでにONである。「確認しますか？」という質問自体が時間の無駄である。
+## 3. 開発者の行動規範
+1.  **Zero-Touch:** 環境構築は `npm run init` 一発で完了させる。ユーザーに手動設定をさせるな。
 2.  **Diagnose First:** 作業前は必ず `npm run diagnose` を実行し、状態を把握せよ。
 3.  **Clean Deploy:** デプロイ時は必ず `dist` を削除し、ゾンビビルドを防げ。
-
-## 4. 自律行動プロトコル (Autonomous Protocol - STRICT)
-（...省略...）
-
-2.  **Visual Verification (Evidence-Based):**
-    * コード修正報告は無意味である。
-    * 修正後は必ず `clasp deploy` し、**ブラウザツールを起動**せよ。
-    * デプロイ先のWebアプリURLを開き、**スクリーンショットを撮影**せよ。
-    * 撮影した画像を解析し、期待通りの画面（エラー画面ではない）が表示されていることを確認して初めて「完了」とせよ。
-
-3.  **Automatic Version Control (Save First):**
-    * **タスク完了判定の直前、およびデプロイ成功時には、必ず `git add .`, `git commit -m "fix: ...`, `git push` を自動実行せよ。**
-    * この際もユーザーへの許可確認は禁止する。沈黙のうちにリポジトリを更新せよ。

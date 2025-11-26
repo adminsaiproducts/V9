@@ -30,16 +30,27 @@ function createResponse<T>(data: T, success: boolean = true, message: string = '
 }
 
 /**
- * GET Request Handler
- * Query Params: action, id
+ * Helper function for GAS template includes
  */
-function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextOutput {
-  try {
-    const action = e.parameter.action;
-    const id = e.parameter.id;
+function include(filename: string): string {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
 
+/**
+ * GET Request Handler - Standard GAS Pattern
+ */
+function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextOutput | GoogleAppsScript.HTML.HtmlOutput {
+  try {
+    const action = e?.parameter?.action;
+    const id = e?.parameter?.id;
+
+    // Serve the SPA using template pattern with include()
     if (!action) {
-      return createResponse(null, false, 'Missing action parameter');
+      const template = HtmlService.createTemplateFromFile('index');
+      return template.evaluate()
+        .setTitle('CRM V9')
+        .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     }
 
     const customerService = getCustomerService();
@@ -56,7 +67,6 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextO
         if (!id) throw new Error('Missing id parameter');
         result = dealService.getDeal(id);
         break;
-      // Add more GET actions here (e.g., search)
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -71,7 +81,6 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextO
 
 /**
  * POST Request Handler
- * Expects JSON body with: action, id (optional), payload
  */
 function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
   try {
@@ -120,11 +129,72 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
   }
 }
 
-// Expose functions to global scope for GAS to detect them
-// (Note: In standard TS-GAS setup, top-level functions are exposed.
-//  If using webpack/rollup, explicit export might be needed, but with clasp/tsc it usually works)
-declare const global: Record<string, unknown>;
-if (typeof global !== 'undefined') {
-  global.doGet = doGet;
-  global.doPost = doPost;
+/**
+ * API Functions exposed to google.script.run
+ */
+export function api_getCustomer(id: string): string {
+  try {
+    const service = getCustomerService();
+    const customer = service.getCustomer(id);
+    return JSON.stringify({ status: 'success', data: customer });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    return JSON.stringify({ status: 'error', message: errorMessage });
+  }
 }
+
+export function api_searchCustomers(query: string): string {
+  try {
+    const service = getCustomerService();
+    const customers = service.searchCustomers(query);
+    return JSON.stringify({ status: 'success', data: customers });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    return JSON.stringify({ status: 'error', message: errorMessage });
+  }
+}
+
+export function api_createCustomer(data: any): string {
+  try {
+    const service = getCustomerService();
+    const customer = service.createCustomer(data);
+    return JSON.stringify({ status: 'success', data: customer });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    return JSON.stringify({ status: 'error', message: errorMessage });
+  }
+}
+
+export function api_updateCustomer(id: string, data: any): string {
+  try {
+    const service = getCustomerService();
+    const customer = service.updateCustomer(id, data);
+    return JSON.stringify({ status: 'success', data: customer });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    return JSON.stringify({ status: 'error', message: errorMessage });
+  }
+}
+
+export function api_deleteCustomer(id: string): string {
+  try {
+    const service = getCustomerService();
+    service.updateCustomer(id, { deleted: true } as any);
+    return JSON.stringify({ status: 'success', data: null });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    return JSON.stringify({ status: 'error', message: errorMessage });
+  }
+}
+
+// Expose functions to global scope for GAS
+declare const global: any;
+const globalScope = typeof globalThis !== 'undefined' ? globalThis : typeof global !== 'undefined' ? global : ({} as any);
+(globalScope as any).doGet = doGet;
+(globalScope as any).doPost = doPost;
+(globalScope as any).include = include;
+(globalScope as any).api_getCustomer = api_getCustomer;
+(globalScope as any).api_searchCustomers = api_searchCustomers;
+(globalScope as any).api_createCustomer = api_createCustomer;
+(globalScope as any).api_updateCustomer = api_updateCustomer;
+(globalScope as any).api_deleteCustomer = api_deleteCustomer;

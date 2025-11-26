@@ -7,16 +7,12 @@ import { getFirestore } from 'firebase-admin/firestore';
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, '../config/serviceAccount.json');
 const DATABASE_ID = 'crm-database-v9';
 const MIGRATED_FILES = [
-  { col: 'RelationshipTypes', file: '../dist/migrated_relationships.json' },
-  { col: 'Customers', file: '../dist/migrated_customers.json' },
-  { col: 'Deals', file: '../dist/migrated_deals.json' },
-  { col: 'Temples', file: '../dist/migrated_temples.json' },
-  { col: 'TransactionCategories', file: '../dist/migrated_categories.json' },
+  { col: 'Temples', file: '../dist/ingested_temples.json' },
+  { col: 'RelationshipTypes', file: '../dist/ingested_relationships.json' },
+  { col: 'Customers', file: '../dist/ingested_customers.json' },
 ];
 
 // Initialize Firebase Admin
-// Note: In a real scenario, ensure SERVICE_ACCOUNT_PATH points to a valid key file.
-// If the file is mock, this script will fail to authenticate but the logic is correct.
 function initializeFirebase() {
   if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
     console.error(`Service account file not found: ${SERVICE_ACCOUNT_PATH}`);
@@ -26,7 +22,7 @@ function initializeFirebase() {
   try {
     const serviceAccount = require(SERVICE_ACCOUNT_PATH);
     // Check if it's our mock file
-    if (serviceAccount.private_key.includes('MOCK_PRIVATE_KEY')) {
+    if (serviceAccount.private_key && serviceAccount.private_key.includes('MOCK_PRIVATE_KEY')) {
       console.warn('⚠️  Mock Service Account detected. Upload skipped (Simulated Mode).');
       return false;
     }

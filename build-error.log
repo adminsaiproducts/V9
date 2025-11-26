@@ -1,0 +1,69 @@
+
+> frontend@0.0.0 build
+> webpack --mode production
+
+assets by status 1.03 MiB [1m[32m[cached][39m[22m 2 assets
+Entrypoint [1mmain[39m[22m = [1m[32mstyles.css[39m[22m [1m[32mapp.bundle.js[39m[22m
+orphan modules 10.1 MiB (javascript) 93 bytes (css/mini-extract) 1.83 KiB (runtime) [1m[33m[orphan][39m[22m 12193 modules
+runtime modules 1.8 KiB 4 modules
+cacheable modules 3.93 MiB (javascript) 59 bytes (css/mini-extract)
+  modules by path [1m./node_modules/[39m[22m 578 KiB
+    modules by path [1m./node_modules/react/[39m[22m 18.2 KiB 4 modules
+    modules by path [1m./node_modules/react-dom/[39m[22m 533 KiB 4 modules
+    modules by path [1m./node_modules/use-sync-external-store/[39m[22m 5.03 KiB 4 modules
+    modules by path [1m./node_modules/prop-types/[39m[22m 2.6 KiB 3 modules
+    modules by path [1m./node_modules/hoist-non-react-statics/[39m[22m 5.36 KiB 3 modules
+    modules by path [1m./node_modules/scheduler/[39m[22m 10.1 KiB 2 modules
+    + 1 module
+  modules by path [1m./src/[39m[22m 3.37 MiB (javascript) 59 bytes (css/mini-extract)
+    [1m./src/main.tsx + 805 modules[39m[22m 3.37 MiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
+    css ./node_modules/css-loader/dist/cjs.js![1m./src/index.css[39m[22m 59 bytes [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
+    [1m./src/lib/api.ts[39m[22m 39 bytes [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m [1m[31m[1 error][39m[22m
+
+[1m[31mERROR[39m[22m in [1m./src/lib/api.ts[39m[22m
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\src\lib\api.ts: Missing semicolon. (48:17)
+
+[0m [90m 46 |[39m [90m   * Search customers by query string[39m
+ [90m 47 |[39m [90m   */[39m
+[31m[1m>[22m[39m[90m 48 |[39m   searchCustomers[33m:[39m [36masync[39m (query[33m:[39m string)[33m:[39m [33mPromise[39m[33m<[39m[33mCustomer[39m[][33m>[39m [33m=>[39m {
+ [90m    |[39m                  [31m[1m^[22m[39m
+ [90m 49 |[39m     [36mreturn[39m callGasApi([32m'api_searchCustomers'[39m[33m,[39m query)[33m;[39m
+ [90m 50 |[39m   }[33m,[39m
+ [90m 51 |[39m[0m
+    at constructor (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:367:19)
+    at TypeScriptParserMixin.raise (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:6624:19)
+    at TypeScriptParserMixin.semicolon (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:6920:10)
+    at TypeScriptParserMixin.parseExpressionStatement (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:13361:10)
+    at TypeScriptParserMixin.parseStatementContent (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12975:19)
+    at TypeScriptParserMixin.parseStatementContent (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:9569:18)
+    at TypeScriptParserMixin.parseStatementLike (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12843:17)
+    at TypeScriptParserMixin.parseStatementOrSloppyAnnexBFunctionDeclaration (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12833:17)
+    at TypeScriptParserMixin.parseLabeledStatement (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:13354:34)
+    at TypeScriptParserMixin.parseStatementContent (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12973:19)
+    at TypeScriptParserMixin.parseStatementContent (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:9569:18)
+    at TypeScriptParserMixin.parseStatementLike (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12843:17)
+    at TypeScriptParserMixin.parseModuleItem (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12820:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:13392:36)
+    at TypeScriptParserMixin.parseBlockBody (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:13385:10)
+    at TypeScriptParserMixin.parseProgram (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12698:10)
+    at TypeScriptParserMixin.parseTopLevel (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:12688:25)
+    at TypeScriptParserMixin.parse (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:14568:25)
+    at TypeScriptParserMixin.parse (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:10183:18)
+    at parse (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\parser\lib\index.js:14602:38)
+    at parser (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\core\lib\parser\index.js:41:34)
+    at parser.next (<anonymous>)
+    at normalizeFile (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+    at normalizeFile.next (<anonymous>)
+    at run (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\core\lib\transformation\index.js:22:50)
+    at run.next (<anonymous>)
+    at transform (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\@babel\core\lib\transform.js:22:33)
+    at transform.next (<anonymous>)
+    at step (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\gensync\index.js:261:32)
+    at C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\gensync\index.js:273:13
+    at async.call.result.err.err (C:\Users\satos\OneDrive\笳句､ｧ隘ｿ\縲・眠CRM繝励Ο繧ｸ繧ｧ繧ｯ繝・Github縺ｨ縺ｮ騾｣謳ｺ繝ｪ繝昴ず繝医Μ螳帛・\V9\frontend\node_modules\gensync\index.js:223:11)
+ @ ./src/pages/Customers.tsx 7:0-33 28:27-46 44:12-30 54:12-30 65:12-30
+ @ ./src/App.tsx 8:0-46 18:46-55
+ @ ./src/main.tsx 4:0-28 76:168-171
+
+webpack 5.103.0 compiled with [1m[31m1 error[39m[22m in 10242 ms

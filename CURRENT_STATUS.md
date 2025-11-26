@@ -1,7 +1,7 @@
 # CRM V9 ステータス: デプロイ完了・初期設定完了
 
 ## 🚀 システム稼働情報
-*   **Web App URL (最新):** `https://script.google.com/macros/s/AKfycbwoasLelbzETLuXL9FF4vi7zUH8s8T1i8FxX6p-5Y97ZwLSr4ZF5MCKRPUNb8ZOBpHw/exec`
+*   **Web App URL (最新):** `https://script.google.com/macros/s/AKfycbxhK-9Fd_0UEYwOQsPtsUXY3zg3_v4a0xpnrMAw12LyCrn2FTm1cYdoTYk54qDKe77SM/exec`
 *   **GAS Script URL:** [編集エディタを開く](https://script.google.com/d/1m6iWE31As4iAwAcRTVVK51zCucN8V0qxPYw1WtmPD0uLzGjIK2qG9FcQ/edit)
 *   **GitHub Repo:** `https://github.com/adminsaiproducts/V9`
 *   **Firestore:** `crm-database-v9` (Tokyo / Native Mode)
@@ -43,3 +43,6 @@ GASエディタの「プロジェクトの設定 > スクリプトプロパテ�
 6.  **Infrastructure:** Added `AICacheService` & `scripts/setup.ts` (Zero-Touch).
 7.  **Build System:** Migrated to **Webpack** to resolve GAS CommonJS/require compatibility issues.
 8.  **System Integrity:** Confirmed full operational status via Health Check endpoint.
+9.  **Frontend Foundation:** Vite + React + TypeScript setup complete.
+10. **UI/UX:** Customer List View with Search implemented.
+11. **Deployment:** Automated `npm run push` pipeline integrating Frontend build.

@@ -7,6 +7,13 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
+    library: {
+      name: 'CRM_APP',
+      type: 'var',
+    },
+  },
+  optimization: {
+    minimize: false,
   },
   module: {
     rules: [
@@ -20,7 +27,5 @@ module.exports = {
   resolve: {
     extensions: ['.ts', '.js'],
   },
-  plugins: [
-    new GasPlugin(),
-  ],
+  plugins: [],
 };

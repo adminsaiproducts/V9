@@ -76,4 +76,15 @@ export class CustomerService {
 
     return updatedCustomer;
   }
+
+  /**
+   * Search customers (Basic implementation for Phase 2)
+   * TODO: Implement full search with filters
+   */
+  searchCustomers(_query: string): Customer[] {
+    // Use the newly added listDocuments method
+    // For search query, we would need a more complex implementation or client-side filtering on a limited set
+    // Phase 2: Simple list recent 50 customers
+    return this.firestore.listDocuments<Customer>(this.collection, 50);
+  }
 }

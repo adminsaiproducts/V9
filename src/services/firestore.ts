@@ -40,7 +40,8 @@ export class FirestoreService {
     try {
       this.databaseId = getProperty(Config.PROPERTIES.FIRESTORE_DATABASE_ID);
     } catch (e) {
-      this.databaseId = '(default)';
+      // Fallback to V9 database if property is not set
+      this.databaseId = 'crm-database-v9';
     }
   }
 
@@ -85,7 +86,7 @@ export class FirestoreService {
     const data = JSON.parse(response.getContentText());
     this.token = data.access_token;
     this.tokenExpiry = now + 3600;
-    
+
     return this.token!;
   }
 
@@ -95,14 +96,14 @@ export class FirestoreService {
    */
   setDocument<T extends object>(collection: string, id: string, data: T): void {
     const url = `https://firestore.googleapis.com/v1/projects/${this.projectId}/databases/${this.databaseId}/documents/${collection}/${id}`;
-    
+
     const firestoreData = this.toFirestoreValue(data as unknown as Record<string, unknown>);
 
     // Using PATCH with local field mask is complex in REST, 
     // simpler to overwrite or assume full object for now if using strict types.
     // But to be safe with REST, we'll use patch but without mask to replace fields present.
     const response = UrlFetchApp.fetch(url, {
-      method: 'patch', 
+      method: 'patch',
       headers: {
         Authorization: `Bearer ${this.getAccessToken()}`,
       },
@@ -112,10 +113,44 @@ export class FirestoreService {
     });
 
     if (response.getResponseCode() !== 200) {
-       throw new Error(`Firestore Set Failed (${collection}/${id}): ${response.getContentText()}`);
+      throw new Error(`Firestore Set Failed (${collection}/${id}): ${response.getContentText()}`);
     }
-    
-    // We don't need to return the response as we assume success if no error thrown
+  }
+
+  /**
+   * Batch Write documents
+   * https://firebase.google.com/docs/firestore/reference/rest/v1/projects.databases.documents/batchWrite
+   */
+  batchWrite(writes: { collection: string; id: string; data: any }[]): void {
+    const url = `https://firestore.googleapis.com/v1/projects/${this.projectId}/databases/${this.databaseId}/documents:batchWrite`;
+
+    const firestoreWrites = writes.map(w => {
+      const docPath = `projects/${this.projectId}/databases/${this.databaseId}/documents/${w.collection}/${w.id}`;
+      return {
+        update: {
+          name: docPath,
+          fields: this.toFirestoreValue(w.data)
+        }
+      };
+    });
+
+    const payload = {
+      writes: firestoreWrites
+    };
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      headers: {
+        Authorization: `Bearer ${this.getAccessToken()}`,
+      },
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    });
+
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`Firestore Batch Write Failed: ${response.getContentText()}`);
+    }
   }
 
   /**
@@ -123,7 +158,7 @@ export class FirestoreService {
    */
   getDocument<T>(collection: string, id: string): T | null {
     const url = `https://firestore.googleapis.com/v1/projects/${this.projectId}/databases/${this.databaseId}/documents/${collection}/${id}`;
-    
+
     const response = UrlFetchApp.fetch(url, {
       method: 'get',
       headers: {
@@ -142,8 +177,37 @@ export class FirestoreService {
 
     const json = JSON.parse(response.getContentText()) as FirestoreResponse;
     if (!json.fields) return {} as T;
-    
+
     return this.fromFirestoreValue(json.fields) as T;
+  }
+
+  /**
+   * List documents in a collection (Limited support for now)
+   */
+  listDocuments<T>(collection: string, limit: number = 50): T[] {
+    const url = `https://firestore.googleapis.com/v1/projects/${this.projectId}/databases/${this.databaseId}/documents/${collection}?pageSize=${limit}`;
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: {
+        Authorization: `Bearer ${this.getAccessToken()}`,
+      },
+      muteHttpExceptions: true,
+    });
+
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`Firestore List Failed (${collection}): ${response.getContentText()}`);
+    }
+
+    const json = JSON.parse(response.getContentText());
+    if (!json.documents) return [];
+
+    return json.documents.map((doc: any) => {
+      const data = this.fromFirestoreValue(doc.fields) as any;
+      // Extract ID from name "projects/.../documents/collection/id"
+      const id = doc.name.split('/').pop();
+      return { ...data, id } as T;
+    });
   }
 
   /**
@@ -159,30 +223,34 @@ export class FirestoreService {
         fields[key] = { stringValue: value };
       } else if (typeof value === 'number') {
         if (Number.isInteger(value)) {
-           fields[key] = { integerValue: value.toString() }; // Firestore Integer is a string (int64)
+          fields[key] = { integerValue: value.toString() }; // Firestore Integer is a string (int64)
         } else {
-           fields[key] = { doubleValue: value };
+          fields[key] = { doubleValue: value };
         }
       } else if (typeof value === 'boolean') {
         fields[key] = { booleanValue: value };
       } else if (Array.isArray(value)) {
-         fields[key] = { arrayValue: { values: value.map(v => {
-             // Wrap primitive types in an object to use recursive call if possible, 
-             // but cleaner to handle primitives directly or construct a single-value object wrapper hack
-             // Simplified: Assume arrays contain objects or primitives.
-             if (typeof v === 'object' && v !== null) {
-                 return { mapValue: { fields: this.toFirestoreValue(v as Record<string, unknown>) } };
-             } else {
-                 // Primitive in array
-                 // We can reuse the logic by creating a dummy object but let's just duplicate slightly for safety
-                 if (typeof v === 'string') return { stringValue: v };
-                 if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: v.toString() } : { doubleValue: v };
-                 if (typeof v === 'boolean') return { booleanValue: v };
-                 return { nullValue: null };
-             }
-         }) } };
+        fields[key] = {
+          arrayValue: {
+            values: value.map(v => {
+              // Wrap primitive types in an object to use recursive call if possible, 
+              // but cleaner to handle primitives directly or construct a single-value object wrapper hack
+              // Simplified: Assume arrays contain objects or primitives.
+              if (typeof v === 'object' && v !== null) {
+                return { mapValue: { fields: this.toFirestoreValue(v as Record<string, unknown>) } };
+              } else {
+                // Primitive in array
+                // We can reuse the logic by creating a dummy object but let's just duplicate slightly for safety
+                if (typeof v === 'string') return { stringValue: v };
+                if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: v.toString() } : { doubleValue: v };
+                if (typeof v === 'boolean') return { booleanValue: v };
+                return { nullValue: null };
+              }
+            })
+          }
+        };
       } else if (typeof value === 'object') {
-         fields[key] = { mapValue: { fields: this.toFirestoreValue(value as Record<string, unknown>) } };
+        fields[key] = { mapValue: { fields: this.toFirestoreValue(value as Record<string, unknown>) } };
       }
     }
     return fields;
@@ -200,7 +268,7 @@ export class FirestoreService {
       createdAt: now,
       updatedAt: now
     };
-    
+
     // In GAS, operations are synchronous.
     // We intentionally block to ensure audit trail is secure.
     // Cast fullLog to Record<string, unknown> which is true for AuditLog interface
@@ -224,12 +292,12 @@ export class FirestoreService {
       else if (value.mapValue) data[key] = this.fromFirestoreValue(value.mapValue.fields);
       else if (value.arrayValue) {
         data[key] = (value.arrayValue.values || []).map((v) => {
-           if (v.stringValue !== undefined) return v.stringValue;
-           if (v.integerValue !== undefined) return parseInt(String(v.integerValue), 10);
-           if (v.doubleValue !== undefined) return v.doubleValue;
-           if (v.booleanValue !== undefined) return v.booleanValue;
-           if (v.mapValue) return this.fromFirestoreValue(v.mapValue.fields);
-           return null;
+          if (v.stringValue !== undefined) return v.stringValue;
+          if (v.integerValue !== undefined) return parseInt(String(v.integerValue), 10);
+          if (v.doubleValue !== undefined) return v.doubleValue;
+          if (v.booleanValue !== undefined) return v.booleanValue;
+          if (v.mapValue) return this.fromFirestoreValue(v.mapValue.fields);
+          return null;
         });
       }
     }
