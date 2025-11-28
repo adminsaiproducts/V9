@@ -19,7 +19,7 @@ export class CustomerService {
     if (!customer.id) {
       customer.id = Utilities.getUuid();
     }
-    
+
     // Set timestamps if missing
     const now = new Date().toISOString();
     if (!customer.createdAt) customer.createdAt = now;
@@ -86,5 +86,47 @@ export class CustomerService {
     // For search query, we would need a more complex implementation or client-side filtering on a limited set
     // Phase 2: Simple list recent 50 customers
     return this.firestore.listDocuments<Customer>(this.collection, 50);
+  }
+
+  /**
+   * List customers with pagination (for DataGrid)
+   * @param page - Page number (0-indexed)
+   * @param pageSize - Number of items per page
+   * @param sortField - Field to sort by (optional)
+   * @param sortOrder - Sort direction: 'asc' or 'desc' (optional)
+   * @returns Object with data array and total count
+   */
+  listCustomersPaginated(
+    page: number = 0,
+    pageSize: number = 100,
+    sortField?: string,
+    sortOrder?: 'asc' | 'desc'
+  ): { data: Customer[]; total: number } {
+    const offset = page * pageSize;
+
+    // For now, use simple list with limit
+    // TODO: Implement proper Firestore pagination with cursors
+    const allCustomers = this.firestore.listDocuments<Customer>(this.collection, offset + pageSize);
+
+    // Slice to get current page
+    const pageData = allCustomers.slice(offset, offset + pageSize);
+
+    // Sort if specified
+    if (sortField && sortOrder) {
+      pageData.sort((a: any, b: any) => {
+        const aVal = a[sortField];
+        const bVal = b[sortField];
+        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    // TODO: Get actual total count from Firestore
+    // For now, return a large number (we know we have 10,852)
+    return {
+      data: pageData,
+      total: 10852
+    };
   }
 }

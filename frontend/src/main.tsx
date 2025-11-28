@@ -1,104 +1,142 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
+import { DataGrid, GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
+import { Box, Typography, Paper } from '@mui/material';
 import './index.css';
 
 interface Customer {
   id: string;
   name: string;
-  kana: string;
+  nameKana: string;
   address: string;
   phone: string;
   email: string;
 }
 
-function App() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface ApiResponse {
+  status: string;
+  data: Customer[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
-  useEffect(() => {
-    console.log('🚀 Fetching customers...');
+const columns: GridColDef[] = [
+  { field: 'id', headerName: 'ID', width: 200 },
+  { field: 'name', headerName: '名前', width: 200 },
+  { field: 'nameKana', headerName: 'カナ', width: 200 },
+  { field: 'address', headerName: '住所', width: 300 },
+  { field: 'phone', headerName: '電話', width: 150 },
+  { field: 'email', headerName: 'メール', width: 250 },
+];
 
-    // GAS環境チェック
+// GAS API Wrapper
+const runGasApi = (functionName: string, ...args: any[]): Promise<any> => {
+  return new Promise((resolve, reject) => {
     if (typeof google === 'undefined' || !google.script || !google.script.run) {
-      console.error('❌ google.script.run is not available');
-      setError('GAS環境が検出できません');
-      setLoading(false);
+      reject(new Error('GAS environment not detected'));
       return;
     }
 
-    // GAS APIコール
     google.script.run
-      .withSuccessHandler((result: string) => {
-        console.log('✅ API Response:', result);
+      .withSuccessHandler((result: any) => {
         try {
-          const data = JSON.parse(result);
-          if (data.status === 'success') {
-            setCustomers(data.data);
-          } else {
-            setError('データ取得に失敗しました');
-          }
+          // Parse JSON if result is string, otherwise use as is
+          const data = typeof result === 'string' ? JSON.parse(result) : result;
+          resolve(data);
         } catch (e) {
-          console.error('❌ Parse error:', e);
-          setError('レスポンスのパースに失敗しました');
+          reject(e);
         }
-        setLoading(false);
       })
-      .withFailureHandler((err: Error) => {
-        console.error('❌ API Error:', err);
-        setError(err.message);
-        setLoading(false);
-      })
-      .api_getCustomers();
-  }, []);
+      .withFailureHandler((error: Error) => reject(error))
+    [functionName](...args);
+  });
+};
 
-  if (loading) {
-    return (
-      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-        <h1>CRM V9 - 顧客リスト</h1>
-        <p>読み込み中...</p>
-      </div>
-    );
-  }
+function App() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rowCount, setRowCount] = useState(0);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 100,
+  });
+  const [sortModel, setSortModel] = useState<GridSortModel>([]);
+
+  const fetchCustomers = useCallback(async () => {
+    console.log('🚀 Fetching customers...', { paginationModel, sortModel });
+    setLoading(true);
+    setError(null);
+
+    try {
+      const sortField = sortModel.length > 0 ? sortModel[0].field : undefined;
+      const sortOrder = sortModel.length > 0 ? sortModel[0].sort : undefined;
+
+      // Call GAS function directly using google.script.run wrapper
+      // Note: We need to expose a new GAS function that accepts these parameters
+      // Or update api_getCustomers to accept arguments
+      const response = await runGasApi(
+        'api_getCustomersPaginated',
+        paginationModel.page,
+        paginationModel.pageSize,
+        sortField,
+        sortOrder
+      );
+
+      console.log('✅ API Response:', response);
+
+      if (response.status === 'success') {
+        setCustomers(response.data);
+        setRowCount(response.total);
+      } else {
+        setError(response.message || 'データ取得に失敗しました');
+      }
+    } catch (e: any) {
+      console.error('❌ Fetch error:', e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [paginationModel, sortModel]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   if (error) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-        <h1>CRM V9 - 顧客リスト</h1>
-        <p style={{ color: 'red' }}>エラー: {error}</p>
-      </div>
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          CRM V9 - 顧客リスト
+        </Typography>
+        <Typography color="error">エラー: {error}</Typography>
+      </Box>
     );
   }
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>CRM V9 - 顧客リスト</h1>
-      <p>顧客数: {customers.length}件</p>
-      <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: '20px' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#f0f0f0' }}>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>ID</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>名前</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>カナ</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>住所</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>電話</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>メール</th>
-          </tr>
-        </thead>
-        <tbody>
-          {customers.map((customer) => (
-            <tr key={customer.id}>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.id}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.name}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.kana}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.address}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.phone}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.email}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        CRM V9 - 顧客リスト
+      </Typography>
+      <Paper sx={{ height: 700, width: '100%' }}>
+        <DataGrid
+          rows={customers}
+          columns={columns}
+          rowCount={rowCount}
+          loading={loading}
+          pageSizeOptions={[50, 100, 200]}
+          paginationModel={paginationModel}
+          paginationMode="server"
+          onPaginationModelChange={setPaginationModel}
+          sortingMode="server"
+          sortModel={sortModel}
+          onSortModelChange={setSortModel}
+          disableRowSelectionOnClick
+        />
+      </Paper>
+    </Box>
   );
 }
 
