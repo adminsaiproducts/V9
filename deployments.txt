@@ -1,22 +1,23 @@
-Found 21 deployments.
+Found 22 deployments.
 - AKfycbyK-tJ4fqRKYiOZQFAVxVPH_l-HkdO8UFO9BioqUac @HEAD 
-- AKfycbzeF8cv4i-kCFjpS1wmA5jOwki83eHGeZHEdRRdvwP5Oz4ENZIGErqwrki5_4208Dg4 @27 
-- AKfycbyEU56_mgg8-lPUUaxDrZdphzoikMqL9SECZ3EdEeqxaAqG8dAQ5GiVC_Q-65Am4Q_p @19 - Phase 2: Frontend Launch (v2)
-- AKfycbxnio1f2Dukaz1lzFVBoKBhP84IQZQI1fZN5D8gy5zWRtb8NMrKj6t57vA9Y_qcgwT1 @24 
-- AKfycbzpmB1lKuiNRAKpBo5Bp86kuoXVgjbN2hZ_Ro1Zh2GO4VU9UNk0wKdqs2UGD3AaQGyN @21 
-- AKfycbyitGDhb5hBwZ5FjTVyCc0l67OP0bg54X8PBBjaX9tM2-13lYUQjqHkLqKA03UfGF8q @4 - Stable V1 Public
-- AKfycbyifoUd4GAFdnicdODrM8rDVNUR4gqG74yMw-Fmk-NTxYbMr9xBDKzNMvc3Tu7EGafW @17 - Phase 2: Frontend Launch
-- AKfycbxq46FlBc5n_ORAQ8hEUyoEDj_IfuvohGBPQWc4asu4JC40IUq598BAWZ3nrBQGPYBc @32 - Phase 2: Material-UI螳梧・
-- AKfycbwiLL9ym8thHwyFq5bAbBdjgmVUgO5C59-lfzaWcps723CA3rPYB-ez0KZVGbqOj5Pe @28 
-- AKfycbzoiNW2E3pSRO6bNFq6imiMns_08FvHOQool3ms8lmn7X6ExsBDw_qP_1fK-CPbwUU @40 - v40 Server-Side Injection Final
-- AKfycbz8SlpPpxnSKYjWs6arEZkggANUq7pBRbYG1etHm2xry3G4folKCiYv8rEV2IRhADYW @26 
-- AKfycbwoasLelbzETLuXL9FF4vi7zUH8s8T1i8FxX6p-5Y97ZwLSr4ZF5MCKRPUNb8ZOBpHw @16 - V9 Fix: Disable minification & explicit global scope
-- AKfycbwfblDISUBWlukAp67lcSTRtlNpSqKvM4NXJJKGkPWlgIK5U6pRG6mYjNkLS-erHszx @23 
-- AKfycbyXUzpdp7yXX8yeYlXKbNwHNOkbybFn2J-sZckdH1nIg8rC6pYrgoJiuT-3bjpzfVif @30 
-- AKfycbxcGlziF_14WGXcZqftDaLAjR5lKamiK7caO-t8ZNp5FUvBbfQbA94YJi4OrNRI-HrU @22 
-- AKfycbyTNKdOHR9Cl7yFscjT_MZYoMeY0YZIqAZoqLPhYxxCQCPQB_FoVGg6vX99yi2Y0Cmc @29 
-- AKfycbxp89i9QlbEFJgjdFV8kg_WsIVEQ4EmJC0WuzEL3KeUzJSGV8EKef1NlK2ZWxnELA2r @25 
-- AKfycbx1o0yWM1wHTHdzCWZUhEX1dPzfwr9OxeJ8_CuEQaG3rlhumEjt1AsAHUlUoaCC9u_b @1 - Initial Deploy V9
-- AKfycbwa7uMQzZ_h74s8l8-WYcFFdl1o2y0Cl2aenmT-ayCEWmw3MYESWJuBcSfHvMZx5Q6L @18 - Fix: Polyfill exports for GAS compatibility
-- AKfycbx0_CdA6LAPXDB1BwcyU8JnU8O_sOSIhYL2ZseiKiyQrG-7W4znZpoyiNybp34g-995 @33 - Phase 2: Material-UI (Inline Bundle)
-- AKfycbxhK-9Fd_0UEYwOQsPtsUXY3zg3_v4a0xpnrMAw12LyCrn2FTm1cYdoTYk54qDKe7SM @20 - Phase 2: Frontend Launch (v3) - Fix Polyfills
+- AKfycbyogHAxbqaggww_xWzwLuzrhDoAbb5CX3KAMcykVsFDaw95b6lIRiQ_FWjFq0I1MO-3 @96 - Debug Minimal HTML
+- AKfycbwd6jFPu5ru7dcCjK_rexMlufvtp6HAQDOq9d6Zg3buizVZLwYViewFHUu7OFRZAeiY @110 - v110: Final Recovery (Authorized)
+- AKfycbxw4qilLcTmwXyodVV-5TLoM08XBbxUWjR2yiGOzbgPPTcDLx_paN3zGS4yO_UoBlSr @119 - v119: Debugging doGet Error
+- AKfycbwwpb3uC06yG8QjbcJbQGdCTzeGGB2Pu5vR-xMZeBHLjNor5gmlqMb6Ba4pABqTT6YQ @130 - v129: All HTML files present + Bridge
+- AKfycbwzB18LAYAHR2RShwd_DlL0HQAGjz6W-HHPbS76Uwvm6IUk2RENCCuC1j9-toc2Ioa4 @131 - V131
+- AKfycbwFJiakl9X-9j4EjmQ60UY29QFQbvR8qs3TzqmcIjM7O3RGiP9Ap8DM9H3uwmJtfWli @117 - v117: Implement MUI DataGrid with Server-side Pagination
+- AKfycbzGsFYYejI9weVPa8Nc5bTOZJypLRzFbbQhvfZLMfSp06RYISZRVAXfXWaVBPy_3ZRi @116 - v114: Connect to Real Firestore Data
+- AKfycbysK9740m4hxxGXDGguRUzKw2oZOQIpkBYi3c06p1pwFbpyLqoVh-r0QMgnLebH09wb @82 - Full App: Restored App.tsx and main.tsx with fix
+- AKfycbwnhbmU5ya7ixNgAQPWHWbmBaLmBPs49tEn6lBEnK0wE22hBEjtJveNS16-jPRVUB4G @121 - v120: Fix main.ts exports for GasPlugin
+- AKfycbwq886VJrm-dSi_1TtTmcv3f1ig2Nx-bdEMu7sTgIek6GtmVaOyXA_j981NUxRKuuR6 @111 - v200: Reboot with 3-File Pattern
+- AKfycbzNY8P1TFdEE65_PtTZFJhl6TZ5XH2HQHXOcsr9E7SV97_dJL4bReFJryXmWZ2DRYUe @126 - v125: Use globalThis for GAS function exposure
+- AKfycbywkVV0rr5na3E2GloRQl8F24mwzYkUpwUW7ih9Ku5pTx5dJAPztyQMkQDx0U2QY7AQ @118 - v118: Fix DataGrid Fetching (google.script.run)
+- AKfycbzPJki6WMT9WD9ot84Vkq5Fxq6jhV3GOwSPE6zhBdEOKjXryFgECSHiqAnx2zo7WhAv @95 - Vite SingleFile Migration (Retry 2)
+- AKfycby1Sk90DUgRmHK8jMqDu5JjZwNhGtWJc47DkWQ-wo4hM-zU9Ec7dfythDERh6DVXCXS @113 - v113: Fix Global Scope Exposure
+- AKfycbz8LnU9WMP2uldy1rNn4pCmNcI0WsdyoXjZTVnNthsYYpCkl6nQTlDVdnDDrL_PMuyH @122 - v122: Remove webpack library config for GasPlugin
+- AKfycbxbbHGJBkOwpO6xvimjyCKhShRmX2Iazh-u3Hg_03bPxOoXoctetEb35ruDq1Xa2H1w @98 - Vite + Base64 Inline (Fixed)
+- AKfycbyFdkPti6S8owINTrZnhNjMXbnSWarXT7lIWyVZWW5WKtzduSabBvj9HLhdJHpSv_Is @124 - v122: Remove webpack library config for GasPlugin
+- AKfycbw6x6SZhcxe6Io8nFja8rY10dUasXqblwqtm5OtgHQP-dLett4Nzu-RVdjXwagEJuDm @115 
+- AKfycbxtAQxhDnpQezxI4doMWQHVlVwlPOkpYbfOzO3OacSMDe_VHrVkMjc0mmGChRYslAE @97 - Vite + Base64 Inline Strategy
+- AKfycbxflcG-8flU96Wx8CUvZuX9bkxTHdAviFyQPDKFjkjnius1eOjoPh_dl2z2BiH-vuRz @84 - Fix: 500 Error (Added GasPlugin to Webpack)
+- AKfycbzuAMdMC9yXcNQ_AJrBbVv1UJvQBLPooZh-4Xr0_UJ8H2aJZl0QA9RpO9Pe_1WceVGY @128 - v127: Automated GAS Bridge Injection

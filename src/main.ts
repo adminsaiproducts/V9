@@ -1,7 +1,7 @@
 // src/main.ts - RECOVERY MODE
 import { CustomerService } from './services/customer_service';
 
-export function doGet(e: GoogleAppsScript.Events.DoGet) {
+function doGet(e: GoogleAppsScript.Events.DoGet) {
   try {
     // Check if this is an API request
     const path = e.parameter && e.parameter.path;
@@ -24,11 +24,33 @@ export function doGet(e: GoogleAppsScript.Events.DoGet) {
   }
 }
 
-export function include(filename: string) {
+function doPost(e: GoogleAppsScript.Events.DoPost) {
+  try {
+    // Placeholder for POST request handling
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'POST request received successfully (placeholder)',
+        data: e.postData ? e.postData.contents : 'No data'
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error: any) {
+    Logger.log('Error in doPost: ' + error.message);
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        status: 'error',
+        message: error.message,
+        data: null
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function include(filename: string) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-export function handleApiGetCustomers(e: GoogleAppsScript.Events.DoGet) {
+function handleApiGetCustomers(e: GoogleAppsScript.Events.DoGet) {
   try {
     // Parse pagination parameters
     const page = parseInt(e.parameter.page || '0');
@@ -69,7 +91,7 @@ export function handleApiGetCustomers(e: GoogleAppsScript.Events.DoGet) {
   }
 }
 
-export function api_getCustomers() {
+function api_getCustomers() {
   try {
     // Legacy method - kept for backward compatibility
     // Use CustomerService to fetch real data from Firestore
@@ -97,7 +119,7 @@ export function api_getCustomers() {
   }
 }
 
-export function api_getCustomersPaginated(page: number, pageSize: number, sortField?: string, sortOrder?: string) {
+function api_getCustomersPaginated(page: number, pageSize: number, sortField?: string, sortOrder?: string) {
   try {
     // Use CustomerService to fetch paginated data from Firestore
     const customerService = new CustomerService();
@@ -132,3 +154,10 @@ export function api_getCustomersPaginated(page: number, pageSize: number, sortFi
     });
   }
 }
+
+// グローバルスコープに公開（GAS ランタイムが認識できるように）
+(globalThis as any).doGet = doGet;
+(globalThis as any).doPost = doPost;
+(globalThis as any).include = include;
+(globalThis as any).api_getCustomers = api_getCustomers;
+(globalThis as any).api_getCustomersPaginated = api_getCustomersPaginated;

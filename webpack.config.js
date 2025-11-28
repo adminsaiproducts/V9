@@ -7,10 +7,6 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
-    library: {
-      name: 'CRM_APP',
-      type: 'var',
-    },
   },
   optimization: {
     minimize: false,

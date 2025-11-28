@@ -7,7 +7,7 @@
     "init": "npm install && npm run setup",
     "setup": "ts-node --project scripts/tsconfig.json scripts/setup.ts",
     "diagnose": "npm run setup",
-    "build": "rimraf dist && webpack && cd frontend && npm run build && cd .. && shx cp appsscript.json dist/appsscript.json",
+    "build": "rimraf dist && webpack && node scripts/add-bridge.js && cd frontend && npm run build && cd .. && shx cp appsscript.json dist/appsscript.json",
     "lint": "gts lint",
     "clean": "gts clean",
     "fix": "gts fix",

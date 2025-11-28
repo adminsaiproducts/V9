@@ -1,14 +1,3 @@
-# CRM V9 ステータス: Phase 3 完了 (Real Data Connection)
-
-## 🚀 システム稼働情報
-*   **Web App URL (最新):** `https://script.google.com/macros/s/AKfycbzGsFYYejI9weVPa8Nc5bTOZJypLRzFbbQhvfZLMfSp06RYISZRVAXfXWaVBPy_3ZRi/exec`
-*   **デプロイバージョン:** Version 116 (2025-11-28)
-*   **GAS Script URL:** [編集エディタを開く](https://script.google.com/d/1m6iWE31As4iAwAcRTVVK51zCucN8V0qxPYw1WtmPD0uLzGjIK2qG9FcQ/edit)
-*   **GitHub Repo:** `https://github.com/adminsaiproducts/V9`
-*   **Firestore:** `crm-database-v9` (Tokyo / Native Mode)
-*   **データ件数:** Customers (10,852), Deals (999)
-
-## ⚙️ スクリプトプロパティ設定
 
 | プロパティ名 | 設定値 |
 | :--- | :--- |
@@ -63,6 +52,7 @@ dist/
 12. **Firestore Integration:** `CustomerService` を使用した実データ取得（v116）
 13. **Type Mapping:** Customer型の正しいマッピング（`nameKana`, 構造化address）
 14. **Verification:** ブラウザで実データ表示を確認（10,852件の顧客データ）
+15. **Bridge Injection:** `doPost` 実装と `add-bridge.js` による自動注入の完全化（v133）
 
 ## 📝 次のステップ (Phase 4: Usability Enhancement)
 

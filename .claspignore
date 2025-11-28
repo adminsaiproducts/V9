@@ -1,6 +1,3 @@
 **/*
-!dist/appsscript.json
-!dist/bundle.js
-!dist/index.html
-!dist/javascript.html
-!dist/stylesheet.html
+!dist/**
+dist/assets/**
