@@ -1,0 +1,22 @@
+Found 21 deployments.
+- AKfycbyK-tJ4fqRKYiOZQFAVxVPH_l-HkdO8UFO9BioqUac @HEAD 
+- AKfycbzLy8GDyNFs73XBRaMRwtnHvGa12wLIxHcAOdbQ5MZvwvyQ0WiMP_8tdsMUkYoHVTY0 @90 - Fix: Wrap Base64 in HTML tags for GAS compatibility
+- AKfycbzoiNW2E3pSRO6bNFq6imiMns_08FvHOQool3ms8lmn7X6ExsBDw_qP_1fK-CPbwUU @40 - v40 Server-Side Injection Final
+- AKfycbzDV21IQr3Y1n9jCi8iiHvDYzRJ-idEbjPftHrG2UU4fydEAWIrydEF_MIUw5uO5Ihl @77 - Clean output - no HTML tags
+- AKfycbwXckBjTZFPLkATXe34NIuRD9BixheU71NmCZ1nRg3IQE0GC8FNozRlHo2uCOjjf95u @72 - Fix atob SyntaxError - Strip HTML tags
+- AKfycbzJplCWR3LzVbZXEXLLTkpJVZ_BiquXdK-dDnG030tErscvyaNtD--uLW2s0VfX_O__ @67 - Survival Test Base64
+- AKfycbysK9740m4hxxGXDGguRUzKw2oZOQIpkBYi3c06p1pwFbpyLqoVh-r0QMgnLebH09wb @82 - Full App: Restored App.tsx and main.tsx with fix
+- AKfycbzVJyID2JR6hCt4WsepI6di9_Apy6FDMgvEQMEjZ4ROvmEg4-yP1_1DbXPieoMoqRoo @91 - Fix: Base64 in script tags
+- AKfycbyXUzpdp7yXX8yeYlXKbNwHNOkbybFn2J-sZckdH1nIg8rC6pYrgoJiuT-3bjpzfVif @60 - v61 Fail Loudly
+- AKfycbw4oO2llFGfoAY4gzx3UqPBp8Nlh4ORVjvPJvZ__hnEfIq2TDYqCjzeKLiRzGNO4he6 @89 - Autonomous rebuild - 2025-11-27
+- AKfycby_NsM-thkFJr1j-s1gfjsQT2C7_aqRn5-zWOKUQhGhHkbcLuW1x1-IJOJGPYY-EvPd @80 - Fix: Use Base64 Encapsulation in Webpack to avoid GAS HTML parsing
+- AKfycbzVgssctzo5jE1E3RkiK_KUN1s3TuzI_wLVvp3nnpbd7m2hacLIPfQgjg1uMQOldSf7 @70 - Fix Malformed HTML Error
+- AKfycbw6heYIBo8-jF8Ka4kN1u1_BZVH53yWL9a5UIO2e46MHfhBsFlEW3nMIF4xMWXBd7XX @65 - Base64 Encapsulation
+- AKfycbyUagqHuKoWz9oLIc17UsauG_OXqC1aKHtewVgm3PkBokity1OzqEygzFxvZKs6szeq @71 - Base64 Encoding Fix
+- AKfycbxflcG-8flU96Wx8CUvZuX9bkxTHdAviFyQPDKFjkjnius1eOjoPh_dl2z2BiH-vuRz @84 - Fix: 500 Error (Added GasPlugin to Webpack)
+- AKfycbzRPPsUIp58Ef6iDeOGyqiFDTgdBe0qIKBQFEhfI-I7J0mK47YAdQdN5DTGUjg16of8 @81 - Fix: Render immediately, remove DOMContentLoaded wait
+- AKfycbxZk9WQmlsM_fkPykq9mJUQL-eNugSXEqaiIxVXMrcpVNF_TdzGsViXEFeZngLnJfpu @85 - Final: Polished UI (Removed visible comments)
+- AKfycbx1o0yWM1wHTHdzCWZUhEX1dPzfwr9OxeJ8_CuEQaG3rlhumEjt1AsAHUlUoaCC9u_b @1 - Initial Deploy V9
+- AKfycbzp0Q_h69W3lArHYueX4x1Se65UAAd6V7oyL8dHucZcGFvKY8eRKSRD2u9EK0O64u59 @83 - Fix: React Error #130 (Named Imports & Outlet)
+- AKfycbyHGtHUKebT_2gCl1ULV44Jb5vDaDZI86cSirgXwywlegVxL2YDna-P3yOjMarJXJ4k @75 - Safe tag removal v2
+- AKfycbx02Mii4JwXEwfVvKc9IBvtuIeBfX8NjfBI1iAsbO5YHzm0RnuEL6Z7_JHU-wKUJgTl @92 - Revert to working version

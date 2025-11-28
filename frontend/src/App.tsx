@@ -1,31 +1,24 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import { theme } from './theme';
 import { AppLayout } from './components/Layout/AppLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Customers } from './pages/Customers';
-import { ErrorBoundary } from './components/ErrorBoundary';
 
-function App() {
+export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <ErrorBoundary>
-        <Router>
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/deals" element={<div>商談管理 (Coming Soon)</div>} />
-              <Route path="/reports" element={<div>レポート (Coming Soon)</div>} />
-            </Routes>
-          </AppLayout>
-        </Router>
-      </ErrorBoundary>
+      <HashRouter>
+        <Routes>
+          <Route path="/" element={<AppLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="customers" element={<Customers />} />
+          </Route>
+        </Routes>
+      </HashRouter>
     </ThemeProvider>
   );
 }
-
-export default App;

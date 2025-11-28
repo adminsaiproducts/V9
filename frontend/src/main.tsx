@@ -1,105 +1,132 @@
-import React, { StrictMode, Component, ErrorInfo, ReactNode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
 
-console.log("🚀 SCRIPT LOADED: JS is running!");
-
-// Debug logger to show messages on screen
-declare global {
-  interface Window {
-    addLog: (msg: string) => void;
-  }
+interface Customer {
+  id: string;
+  name: string;
+  kana: string;
+  address: string;
+  phone: string;
+  email: string;
 }
 
-const createDebugConsole = () => {
-  const consoleDiv = document.createElement('div');
-  consoleDiv.id = 'debug-console';
-  consoleDiv.style.position = 'fixed';
-  consoleDiv.style.bottom = '0';
-  consoleDiv.style.left = '0';
-  consoleDiv.style.width = '100%';
-  consoleDiv.style.height = '150px';
-  consoleDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-  consoleDiv.style.color = 'lime';
-  consoleDiv.style.fontFamily = 'monospace';
-  consoleDiv.style.fontSize = '12px';
-  consoleDiv.style.overflowY = 'scroll';
-  consoleDiv.style.padding = '10px';
-  consoleDiv.style.zIndex = '9999';
-  consoleDiv.style.pointerEvents = 'none'; // Click through
-  document.body.appendChild(consoleDiv);
-  return consoleDiv;
-};
+function App() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-let debugConsole: HTMLElement | null = null;
+  useEffect(() => {
+    console.log('🚀 Fetching customers...');
 
-window.addLog = (msg: string) => {
-  if (!debugConsole) {
-    debugConsole = createDebugConsole();
-  }
-  const logLine = document.createElement('div');
-  logLine.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  debugConsole.appendChild(logLine);
-  debugConsole.scrollTop = debugConsole.scrollHeight;
-  console.log(msg);
-};
-
-const logToScreen = window.addLog;
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logToScreen(`ErrorBoundary caught: ${error.message}`);
-    console.error("Uncaught error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: 20, color: 'red' }}>
-          <h1>Something went wrong.</h1>
-          <pre>{this.state.error?.toString()}</pre>
-          <pre>{this.state.error?.stack}</pre>
-        </div>
-      );
+    // GAS環境チェック
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      console.error('❌ google.script.run is not available');
+      setError('GAS環境が検出できません');
+      setLoading(false);
+      return;
     }
 
-    return this.props.children;
+    // GAS APIコール
+    google.script.run
+      .withSuccessHandler((result: string) => {
+        console.log('✅ API Response:', result);
+        try {
+          const data = JSON.parse(result);
+          if (data.status === 'success') {
+            setCustomers(data.data);
+          } else {
+            setError('データ取得に失敗しました');
+          }
+        } catch (e) {
+          console.error('❌ Parse error:', e);
+          setError('レスポンスのパースに失敗しました');
+        }
+        setLoading(false);
+      })
+      .withFailureHandler((err: Error) => {
+        console.error('❌ API Error:', err);
+        setError(err.message);
+        setLoading(false);
+      })
+      .api_getCustomers();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+        <h1>CRM V9 - 顧客リスト</h1>
+        <p>読み込み中...</p>
+      </div>
+    );
   }
+
+  if (error) {
+    return (
+      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+        <h1>CRM V9 - 顧客リスト</h1>
+        <p style={{ color: 'red' }}>エラー: {error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>CRM V9 - 顧客リスト</h1>
+      <p>顧客数: {customers.length}件</p>
+      <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: '20px' }}>
+        <thead>
+          <tr style={{ backgroundColor: '#f0f0f0' }}>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>ID</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>名前</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>カナ</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>住所</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>電話</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>メール</th>
+          </tr>
+        </thead>
+        <tbody>
+          {customers.map((customer) => (
+            <tr key={customer.id}>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.id}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.name}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.kana}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.address}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.phone}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{customer.email}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
-const mount = () => {
-  logToScreen('Mounting started...');
-  const root = document.getElementById('root');
-  if (root) {
-    try {
-      createRoot(root).render(
-        <StrictMode>
-          <ErrorBoundary>
-            <App />
-          </ErrorBoundary>
-        </StrictMode>,
-      );
-      logToScreen('Render called.');
-    } catch (e: any) {
-      logToScreen(`Mount error: ${e.message}`);
-    }
-  } else {
-    logToScreen('Root element not found');
+// マウント処理
+console.log('🔥 JS ENTRY POINT EXECUTED');
+
+function mountApp() {
+  console.log('🚀 Starting Mount Process...');
+
+  const rootElement = document.getElementById('root');
+  if (!rootElement) {
+    console.error('❌ Root element not found!');
+    return;
   }
-};
+
+  try {
+    console.log('✅ Creating React root...');
+    const reactRoot = createRoot(rootElement);
+    reactRoot.render(<App />);
+    console.log('✅ React render called successfully');
+  } catch (e: any) {
+    console.error('❌ React mount error:', e);
+    rootElement.innerHTML = '<div style="color:red; padding:20px;"><h3>React Mount Error</h3><p>' + e.message + '</p></div>';
+  }
+}
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', mount);
+  document.addEventListener('DOMContentLoaded', mountApp);
 } else {
-  mount();
+  mountApp();
 }

@@ -22,15 +22,15 @@ import {
     BusinessCenter as BusinessCenterIcon,
     Assessment as AssessmentIcon,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
 const DRAWER_WIDTH = 240;
 
 interface AppLayoutProps {
-    children: React.ReactNode;
+    // children prop is no longer needed as we use Outlet
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+export const AppLayout: React.FC<AppLayoutProps> = () => {
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -136,7 +136,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     mt: 8,
                 }}
             >
-                {children}
+                <Outlet />
             </Box>
         </Box>
     );

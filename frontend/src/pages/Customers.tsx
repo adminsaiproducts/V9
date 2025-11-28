@@ -6,16 +6,22 @@ import {
     Fab,
     Snackbar,
     Alert,
+    CircularProgress,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { Add as AddIcon } from '@mui/icons-material';
 import { CustomerForm } from '../components/Customer/CustomerForm';
 import { CustomerDrawer } from '../components/Customer/CustomerDrawer';
-import { api, Customer } from '../lib/api';
+import { useCustomers } from '../hooks/useCustomers';
+import { createCustomer, updateCustomer, deleteCustomer } from '../api/customers';
+import type { Customer } from '../api/types';
 
 export const Customers: React.FC = () => {
-    const [customers, setCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
+    console.log('📋 Customers component rendering...');
+
+    // Use new API client hook
+    const { customers, loading, error, refetch } = useCustomers();
+
     const [formOpen, setFormOpen] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -25,26 +31,6 @@ export const Customers: React.FC = () => {
         severity: 'success',
     });
 
-    // Load customers on mount
-    React.useEffect(() => {
-        loadCustomers();
-    }, []);
-
-    const loadCustomers = async () => {
-        try {
-            if (window.addLog) window.addLog('Customers: loadCustomers called');
-            setLoading(true);
-            const result = await api.searchCustomers('');
-            if (window.addLog) window.addLog(`Customers: Loaded ${result.length} rows`);
-            setCustomers(result);
-        } catch (error) {
-            if (window.addLog) window.addLog('Customers: Load failed');
-            showSnackbar('顧客データの読み込みに失敗しました', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleRowClick = (params: GridRowParams) => {
         setSelectedCustomer(params.row as Customer);
         setDrawerOpen(true);
@@ -52,9 +38,9 @@ export const Customers: React.FC = () => {
 
     const handleCreateCustomer = async (data: any) => {
         try {
-            await api.createCustomer(data);
+            await createCustomer(data);
             showSnackbar('顧客を登録しました', 'success');
-            loadCustomers();
+            refetch();
         } catch (error) {
             showSnackbar('顧客の登録に失敗しました', 'error');
             throw error;
@@ -63,9 +49,9 @@ export const Customers: React.FC = () => {
 
     const handleUpdateCustomer = async (id: string, data: any) => {
         try {
-            await api.updateCustomer(id, data);
+            await updateCustomer(id, data);
             showSnackbar('顧客情報を更新しました', 'success');
-            loadCustomers();
+            refetch();
             setDrawerOpen(false);
         } catch (error) {
             showSnackbar('顧客情報の更新に失敗しました', 'error');
@@ -75,9 +61,9 @@ export const Customers: React.FC = () => {
 
     const handleDeleteCustomer = async (id: string) => {
         try {
-            await api.deleteCustomer(id);
+            await deleteCustomer(id);
             showSnackbar('顧客を削除しました', 'success');
-            loadCustomers();
+            refetch();
             setDrawerOpen(false);
         } catch (error) {
             showSnackbar('顧客の削除に失敗しました', 'error');
@@ -90,22 +76,25 @@ export const Customers: React.FC = () => {
 
     const columns: GridColDef[] = [
         { field: 'name', headerName: '名前', width: 200 },
-        { field: 'nameKana', headerName: 'フリガナ', width: 200 },
-        {
-            field: 'address',
-            headerName: '住所',
-            width: 300,
-            valueGetter: (value, row) => {
-                const prefecture = row?.address?.prefecture || '';
-                const city = row?.address?.city || '';
-                const town = row?.address?.town || '';
-                const fullAddress = `${prefecture}${city}${town}`;
-                return fullAddress || '-';
-            },
-        },
+        { field: 'kana', headerName: 'フリガナ', width: 200 },
+        { field: 'address', headerName: '住所', width: 300 },
         { field: 'phone', headerName: '電話番号', width: 150 },
         { field: 'email', headerName: 'メール', width: 200 },
     ];
+
+    // Show error state
+    if (error) {
+        return (
+            <Box sx={{ p: 3 }}>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+                <Button variant="contained" onClick={refetch}>
+                    再読み込み
+                </Button>
+            </Box>
+        );
+    }
 
     return (
         <Box>
@@ -117,6 +106,7 @@ export const Customers: React.FC = () => {
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={() => setFormOpen(true)}
+                    disabled={loading}
                 >
                     新規登録
                 </Button>

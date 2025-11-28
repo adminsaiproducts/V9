@@ -1,31 +1,14 @@
-# CRM V9 ステータス: デプロイ完了・初期設定完了
+# CRM V9 ステータス: Phase 3 完了 (Real Data Connection)
 
 ## 🚀 システム稼働情報
-*   **Web App URL (最新):** `https://script.google.com/macros/s/AKfycbxhK-9Fd_0UEYwOQsPtsUXY3zg3_v4a0xpnrMAw12LyCrn2FTm1cYdoTYk54qDKe77SM/exec`
+*   **Web App URL (最新):** `https://script.google.com/macros/s/AKfycbzGsFYYejI9weVPa8Nc5bTOZJypLRzFbbQhvfZLMfSp06RYISZRVAXfXWaVBPy_3ZRi/exec`
+*   **デプロイバージョン:** Version 116 (2025-11-28)
 *   **GAS Script URL:** [編集エディタを開く](https://script.google.com/d/1m6iWE31As4iAwAcRTVVK51zCucN8V0qxPYw1WtmPD0uLzGjIK2qG9FcQ/edit)
 *   **GitHub Repo:** `https://github.com/adminsaiproducts/V9`
 *   **Firestore:** `crm-database-v9` (Tokyo / Native Mode)
 *   **データ件数:** Customers (10,852), Deals (999)
 
-## ⚠️ 動作確認方法
-1.  **Web App URL にアクセス:**
-    上記の「Web App URL (最新)」をクリックしてください。
-    アクセス権限を「全員 (ANYONE)」に変更して再デプロイしたため、以前のエラーは解消されているはずです。
-
-2.  **正常な応答:**
-    画面に以下のようなJSONが表示されれば、システムは正常に稼働しています。
-    ```json
-    {
-      "status": "error",
-      "message": "Missing action parameter",
-      ...
-    }
-    ```
-    ※ エラーメッセージが表示されますが、これは「何も指示(パラメータ)がない」という意味の正常な応答です。
-
-## ⚙️ (未設定の場合) スクリプトプロパティ
-もしアクセスして `Missing Script Property` というエラーが出る場合は、以下の設定がまだ完了していません。
-GASエディタの「プロジェクトの設定 > スクリプトプロパティ」を確認してください。
+## ⚙️ スクリプトプロパティ設定
 
 | プロパティ名 | 設定値 |
 | :--- | :--- |
@@ -34,15 +17,74 @@ GASエディタの「プロジェクトの設定 > スクリプトプロパテ�
 | `FIRESTORE_EMAIL` | `crm-v7-automation@crm-appsheet-v7.iam.gserviceaccount.com` |
 | `FIRESTORE_KEY` | `config/serviceAccount.json` の `private_key` 全文 |
 
+## 🏗️ ビルドシステム構成 (3-File Pattern)
+
+**採用戦略:** Separated Assets Pattern (GAS Size Limitation対応)
+
+### 技術スタック
+- **Frontend Build:** Vite + React + TypeScript
+- **Backend Build:** Webpack + gas-webpack-plugin
+- **GAS Template:** 3-File Pattern (`index.html` + `javascript.html` + `stylesheet.html`)
+
+### ファイル構成
+```
+dist/
+├── index.html          (305 B)   - GAS template with <?!= include() ?> tags
+├── javascript.html     (196 KB)  - All JS wrapped in <script> tags
+├── stylesheet.html     (959 B)   - All CSS wrapped in <style> tags
+├── bundle.js          (18.8 KB) - Backend GAS code (with CustomerService)
+└── appsscript.json    (240 B)   - GAS manifest
+```
+
+### 技術的知見
+- **Vite + SingleFile 戦略の制約:** GAS `HtmlService` には HTML サイズ制限（推定 < 500 KB）が存在し、1MB超の単一HTMLファイルはデプロイ時にクラッシュする。
+- **採用理由:** `PROJECT_MANIFEST.md` Section 5.B の例外条項に基づき、3ファイルパターンを採用。
+- **実装詳細:** `scripts/gas-build.js` でViteビルド後のJS/CSSを `<script>`/`<style>` タグでラップし、`include()` 関数で動的結合。
+- **Global Scope Exposure:** Webpack バンドル内の関数を `globalThis` に明示的に代入し、GAS ランタイムが認識できるようにする。
+
 ## 🏁 完了したマイルストーン
+
+### Phase 1: Database Setup ✅
 1.  **Firestore データベース作成:** `crm-database-v9` (Tokyo)
 2.  **データ移行 (ETL):** 10,852件 (検証完了)
 3.  **機能実装:** AuditLog, REST API Endpoint
 4.  **パフォーマンス:** 58ms/request (High Speed)
-5.  **Technical Debt:** Removed `any` types (Strict TypeScript Compliance).
-6.  **Infrastructure:** Added `AICacheService` & `scripts/setup.ts` (Zero-Touch).
-7.  **Build System:** Migrated to **Webpack** to resolve GAS CommonJS/require compatibility issues.
-8.  **System Integrity:** Confirmed full operational status via Health Check endpoint.
-9.  **Frontend Foundation:** Vite + React + TypeScript setup complete.
-10. **UI/UX:** Customer List View with Search implemented.
-11. **Deployment:** Automated `npm run push` pipeline integrating Frontend build.
+
+### Phase 2: Infrastructure Setup ✅
+5.  **Technical Debt:** Removed `any` types (Strict TypeScript Compliance)
+6.  **Infrastructure:** Added `AICacheService` & `scripts/setup.ts` (Zero-Touch)
+7.  **Build System:** Vite + Webpack ハイブリッド構成
+8.  **Frontend Foundation:** Vite + React + TypeScript
+9.  **3-File Pattern Migration:** GAS制限回避のため Separated Assets 戦略を実装
+10. **Deployment Pipeline:** `npm run build` → `clasp push -f` → `clasp deploy` 自動化
+
+### Phase 3: Real Data Connection ✅
+11. **Code Consolidation:** `globalThis` 露出コードの永続化（v113）
+12. **Firestore Integration:** `CustomerService` を使用した実データ取得（v116）
+13. **Type Mapping:** Customer型の正しいマッピング（`nameKana`, 構造化address）
+14. **Verification:** ブラウザで実データ表示を確認（10,852件の顧客データ）
+
+## 📝 次のステップ (Phase 4: Usability Enhancement)
+
+### 優先タスク
+1.  **Search Functionality:** 顧客検索機能の実装（名前、住所、電話番号）
+2.  **Pagination:** 50件制限の解除、ページネーション実装
+3.  **Customer Detail View:** 顧客詳細画面の実装
+4.  **Error Handling:** フロントエンドのエラー表示改善
+
+### 将来的な拡張
+- **CRUD Operations:** 顧客の作成・更新・削除機能
+- **Relationships Display:** 顧客間の関係性表示
+- **Deals Integration:** 顧客に紐づく案件表示
+- **Performance Optimization:** Virtual Scrolling, Cache最適化
+
+## 🔧 既知の課題
+
+### Technical Debt
+- `clasp push` が "already up to date" を返し続ける問題（手動確認が必要）
+- フロントエンドが Material UI を含まない簡易版（Phase 3 で簡略化）
+
+### 改善候補
+- Material UI の再導入（デザイン改善）
+- React Router の再導入（ページ遷移）
+- エラーハンドリングの強化

@@ -40,12 +40,11 @@ export const Dashboard: React.FC = () => {
     return (
         <Box>
             <Typography variant="h4" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-                ダッシュボード
+                ダッシュボード (v9.1)
             </Typography>
 
             <Grid container spacing={3}>
                 {/* Sales Summary */}
-                // @ts-ignore - MUI Grid type`n
                 <Grid item xs={12} md={4}>
                     <Card>
                         <CardContent>
@@ -72,7 +71,6 @@ export const Dashboard: React.FC = () => {
                 </Grid>
 
                 {/* Today's Schedule */}
-                // @ts-ignore - MUI Grid type`n
                 <Grid item xs={12} md={8}>
                     <Card>
                         <CardContent>
@@ -105,7 +103,6 @@ export const Dashboard: React.FC = () => {
                 </Grid>
 
                 {/* Key Deals */}
-                // @ts-ignore - MUI Grid type`n
                 <Grid item xs={12}>
                     <Card>
                         <CardContent>
