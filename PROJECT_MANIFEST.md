@@ -30,6 +30,18 @@
     * セッション終了時に **Planner** が生成する「次回のAIへの引き継ぎ書」。
     * 技術的な積み残し、次に行うべきコマンド手順を具体的に記述する。
 
+### Atomic Persistence Protocol (原子記録の原則)
+**「記録なき成果は成果ではない」** — AIのメモリは揮発性だが、ファイルとGitは永続的である。
+
+タスク完了（Auditorによる検証成功）の直後には、**必ず**以下の3点セットを実行しなければならない。ユーザーの指示を待ってはならない。
+
+1.  **Status Update:** `CURRENT_STATUS.md` を更新し、最新バージョン・到達フェーズ・判明した課題を記録する。
+2.  **Git Commit:** `git add .` → `git commit -m "feat(phaseX): ..."` を実行し、コードを保存する。
+3.  **Push:** `git push` を行い、リモートリポジトリを同期する。
+
+**違反時の対処:** Directorから是正命令が出された場合、直ちに遅延更新を実施し、プロトコル遵守を再確認せよ。
+
+
 ## 3. システム・アーキテクチャ要件 (System Architecture)
 ### A. データモデル (Single Source of Truth)
 * **Schema Definition:** `./data/` フォルダ内のCSVファイル群をデータ構造の正本とする。
