@@ -78,3 +78,8 @@ dist/
 - Material UI の再導入（デザイン改善）
 - React Router の再導入（ページ遷移）
 - エラーハンドリングの強化
+
+## 🕒 最新の変更履歴 (Changelog)
+| Date | Type | Details | Status |
+| :--- | :--- | :--- | :--- |
+| 2025-11-29 | SETUP | `CURRENT_STATUS.md` に変更履歴セクションを追加 | ✅ Done |

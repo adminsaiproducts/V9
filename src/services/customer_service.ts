@@ -82,10 +82,9 @@ export class CustomerService {
    * TODO: Implement full search with filters
    */
   searchCustomers(_query: string): Customer[] {
-    // Use the newly added listDocuments method
-    // For search query, we would need a more complex implementation or client-side filtering on a limited set
-    // Phase 2: Simple list recent 50 customers
-    return this.firestore.listDocuments<Customer>(this.collection, 50);
+    // Fetch all customers (increased limit from 50 to 10000)
+    // For full-text search, consider implementing Firestore queries or Algolia integration
+    return this.firestore.listDocuments<Customer>(this.collection, 10000);
   }
 
   /**

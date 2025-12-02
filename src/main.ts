@@ -93,14 +93,14 @@ function handleApiGetCustomers(e: GoogleAppsScript.Events.DoGet) {
 
 function api_getCustomers() {
   try {
-    // Legacy method - kept for backward compatibility
-    // Use CustomerService to fetch real data from Firestore
+    // Fetch ALL customers (no limit)
+    // Use listCustomersPaginated with a large page size to get all data
     const customerService = new CustomerService();
-    const customers = customerService.searchCustomers(''); // Get first 50 customers
+    const result = customerService.listCustomersPaginated(1, 10000); // Get up to 10,000 customers
 
     return JSON.stringify({
       status: 'success',
-      data: customers.map(c => ({
+      data: result.data.map(c => ({
         id: c.id,
         name: c.name || '',
         kana: c.nameKana || '',
