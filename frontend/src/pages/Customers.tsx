@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -19,6 +20,8 @@ import type { Customer } from '../api/types';
 export const Customers: React.FC = () => {
     console.log('📋 Customers component rendering...');
 
+    const navigate = useNavigate();
+
     // Use new API client hook
     const { customers, loading, error, refetch } = useCustomers();
 
@@ -32,8 +35,8 @@ export const Customers: React.FC = () => {
     });
 
     const handleRowClick = (params: GridRowParams) => {
-        setSelectedCustomer(params.row as Customer);
-        setDrawerOpen(true);
+        const customerId = params.row.id;
+        navigate(`/customers/${customerId}`);
     };
 
     const handleCreateCustomer = async (data: any) => {

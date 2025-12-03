@@ -10,8 +10,21 @@ function doGet(e: GoogleAppsScript.Events.DoGet) {
       return handleApiGetCustomers(e);
     }
 
-    // Otherwise serve the web app
+    // Parse deep-linking query parameters
+    const view = e.parameter && e.parameter.view;
+    const id = e.parameter && e.parameter.id;
+
+    // Create initial state object for deep-linking
+    const initialState = {
+      view: view || null,
+      id: id || null,
+      timestamp: new Date().toISOString()
+    };
+
+    // Otherwise serve the web app with initial state
     var template = HtmlService.createTemplateFromFile('index');
+    (template as any).initialState = JSON.stringify(initialState);
+
     return template.evaluate()
       .setTitle('CRM V9 - RECOVERY SUCCESS')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
@@ -155,9 +168,40 @@ function api_getCustomersPaginated(page: number, pageSize: number, sortField?: s
   }
 }
 
+/**
+ * Get single customer by ID (for deep-linking)
+ */
+function api_getCustomerById(id: string) {
+  try {
+    const customerService = new CustomerService();
+    const customer = customerService.getCustomer(id);
+
+    if (!customer) {
+      return JSON.stringify({
+        status: 'error',
+        message: `Customer not found: ${id}`,
+        data: null
+      });
+    }
+
+    return JSON.stringify({
+      status: 'success',
+      data: customer
+    });
+  } catch (error: any) {
+    Logger.log('Error fetching customer: ' + error.message);
+    return JSON.stringify({
+      status: 'error',
+      message: error.message,
+      data: null
+    });
+  }
+}
+
 // グローバルスコープに公開（GAS ランタイムが認識できるように）
 (globalThis as any).doGet = doGet;
 (globalThis as any).doPost = doPost;
 (globalThis as any).include = include;
 (globalThis as any).api_getCustomers = api_getCustomers;
 (globalThis as any).api_getCustomersPaginated = api_getCustomersPaginated;
+(globalThis as any).api_getCustomerById = api_getCustomerById;

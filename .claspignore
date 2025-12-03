@@ -1,3 +1,18 @@
-**/*
-!dist/**
-dist/assets/**
+# Since rootDir is "dist", this .claspignore is relative to project root
+# Push only GAS files, not frontend build artifacts
+
+# Exclude everything at root
+/*
+
+# Include only dist directory
+!dist/
+
+# Include specific GAS files in dist
+!dist/appsscript.json
+!dist/bundle.js
+!dist/index.html
+!dist/javascript.html
+!dist/stylesheet.html
+
+# Explicitly exclude assets directory (React build artifacts)
+dist/assets/

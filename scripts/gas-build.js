@@ -53,6 +53,11 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRM V9</title>
   <?!= include('stylesheet'); ?>
+
+  <!-- Inject initial state from server for deep-linking -->
+  <script>
+    window.CRM_INITIAL_STATE = <?!= initialState ?>;
+  </script>
 </head>
 <body>
   <div id="root"></div>
