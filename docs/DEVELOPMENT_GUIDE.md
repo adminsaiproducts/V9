@@ -204,6 +204,59 @@ V9/
 4. **デバッグ時**
    - console.logとalertを追加してどこまで処理が進んでいるか確認
 
+## 7. ドキュメント運用ルール
+
+### 7.1 知見の記録フロー
+
+新しい失敗や知見が得られた場合、以下の手順で記録してください：
+
+```
+1. 本ドキュメント (DEVELOPMENT_GUIDE.md) に詳細を追記
+   - 問題の症状
+   - 原因
+   - 解決策
+   - コード例（あれば）
+
+2. CURRENT_STATUS.md の変更履歴に記録
+   - 日付、Type（FIX/FEATURE/DOCS等）、概要
+
+3. 重要な失敗パターンは PROJECT_MANIFEST.md にも追加
+   - 「よくある失敗パターン」テーブルに追記
+```
+
+### 7.2 ドキュメント構成と役割
+
+| ドキュメント | 役割 | 更新タイミング |
+|-------------|------|----------------|
+| `DEVELOPMENT_GUIDE.md` | 開発時の注意点・知見の詳細 | 新しい知見が得られたとき |
+| `CURRENT_STATUS.md` | 進捗・完了機能・変更履歴 | 機能完了/問題解決時 |
+| `PROJECT_MANIFEST.md` | プロジェクト全体像・鉄則 | アーキテクチャ変更時 |
+| `LESSONS_LEARNED_V10_V11.md` | 過去プロジェクトの教訓（参考） | 基本的に更新不要 |
+
+### 7.3 コミット時のルール
+
+知見を記録したら、関連コードと一緒にコミット：
+
+```bash
+# 機能実装 + 知見記録を同時にコミット
+git add src/main.ts scripts/add-bridge.js docs/DEVELOPMENT_GUIDE.md CURRENT_STATUS.md
+git commit -m "feat: Add api_xxx function
+
+- Implement api_xxx in main.ts
+- Add bridge function in add-bridge.js
+- Document lessons learned in DEVELOPMENT_GUIDE.md"
+```
+
+### 7.4 セッション終了時のチェックリスト
+
+開発セッション終了時に以下を確認：
+
+- [ ] 新しい知見があれば `DEVELOPMENT_GUIDE.md` に追記したか
+- [ ] `CURRENT_STATUS.md` の変更履歴を更新したか
+- [ ] 重要な失敗パターンを `PROJECT_MANIFEST.md` に追加したか
+- [ ] Gitコミット・プッシュしたか
+- [ ] 最新デプロイバージョンを記録したか
+
 ---
 
 *最終更新: 2025-12-03*
