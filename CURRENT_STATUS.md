@@ -65,31 +65,41 @@ dist/
 17. **PROJECT_MANIFEST.md 更新:** V10/V11統合後の状態を反映
 18. **V10/V11 アーカイブ:** GitHubにfinal stateをpush済み
 
-## 次のステップ (Phase 4: Usability Enhancement)
+### Phase 4: Customer Edit & Postal Code Features ✅ (2025-12-03)
+19. **顧客更新機能:** `api_updateCustomer` GAS関数を実装
+20. **GASブリッジ修正:** `scripts/add-bridge.js` にAPI関数追加
+21. **郵便番号→住所変換:** 複数結果がある場合の選択UI実装
+22. **住所→郵便番号検索:** HeartRails Geo APIを使用した逆引き機能
+23. **整合性チェック:** 郵便番号と住所の不一致警告機能
+24. **開発ガイド作成:** `docs/DEVELOPMENT_GUIDE.md` - 知見・失敗・ベストプラクティス
+
+## 次のステップ (Phase 5: Extended Features)
 
 ### 優先タスク
-1. [ ] **Search Functionality:** 顧客検索機能の実装（名前、住所、電話番号）
-2. [ ] **Pagination:** 50件制限の解除、ページネーション実装
-3. [ ] **Customer Detail View:** 顧客詳細画面の実装
-4. [ ] **Error Handling:** フロントエンドのエラー表示改善
+1. [x] ~~**Customer Detail View:** 顧客詳細画面の実装~~ ✅ 完了
+2. [x] ~~**CRUD Operations - Update:** 顧客更新機能~~ ✅ 完了
+3. [ ] **CRUD Operations - Create:** 顧客新規作成機能
+4. [ ] **CRUD Operations - Delete:** 顧客削除機能（論理削除）
+5. [ ] **Search Functionality:** 顧客検索機能の実装（名前、住所、電話番号）
 
 ### 将来的な拡張
-- **CRUD Operations:** 顧客の作成・更新・削除機能
-- **Address Lookup:** 双方向住所検索API（V10/V11実装済み、移植予定）
 - **Relationships Display:** 顧客間の関係性表示
 - **Deals Integration:** 顧客に紐づく案件表示
 - **Performance Optimization:** Virtual Scrolling, Cache最適化
+- **Voice-First Entry:** 音声録音 → Vertex AI 解析
 
 ## 既知の課題
 
 ### Technical Debt
 - `clasp push` が "already up to date" を返し続ける問題（手動確認が必要）
-- フロントエンドが Material UI を含まない簡易版
+- デバッグ用console.log/alertがコードに残っている（本番前に削除要）
 
-### 改善候補
-- Material UI の再導入（デザイン改善）
-- React Router の再導入（ページ遷移）
-- 住所検索APIの移植（V10/V11から）
+### 開発時の注意点（重要）
+詳細は `docs/DEVELOPMENT_GUIDE.md` を参照
+
+1. **新しいGAS関数を追加したら `scripts/add-bridge.js` にも追加**
+2. **Zodスキーマは既存データのフォーマットを確認してから設計**
+3. **デプロイ後は最新バージョンが使われているか確認**
 
 ## V10/V11 廃止について
 
@@ -110,7 +120,13 @@ V10およびV11は開発環境の不安定さ（clasp + OneDrive問題、Script 
 | 2025-12-03 | DOCS | LESSONS_LEARNED_V10_V11.md 作成 | ✅ Done |
 | 2025-12-03 | DOCS | PROJECT_MANIFEST.md 更新 | ✅ Done |
 | 2025-12-03 | ARCHIVE | V10/V11 final state をGitHubにpush | ✅ Done |
+| 2025-12-03 | FEATURE | 顧客更新機能 (api_updateCustomer) 実装 | ✅ Done |
+| 2025-12-03 | FEATURE | 郵便番号⇔住所の双方向検索機能 | ✅ Done |
+| 2025-12-03 | FIX | GASブリッジ関数の追加忘れ問題を解決 | ✅ Done |
+| 2025-12-03 | FIX | Zodスキーマと既存データの整合性問題を解決 | ✅ Done |
+| 2025-12-03 | DOCS | 開発ガイド (DEVELOPMENT_GUIDE.md) 作成 | ✅ Done |
 
 ---
 
 *最終更新: 2025-12-03*
+*最新デプロイ: @164*

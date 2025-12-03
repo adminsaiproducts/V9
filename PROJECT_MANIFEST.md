@@ -59,6 +59,7 @@ V9/
 1. **Total Separation**: Server(GAS)とFrontend(React)の相互import禁止
 2. **REST API Only**: Firestoreへは`FirestoreApp`ライブラリではなく、REST APIを使用（非デフォルトDB対応のため）
 3. **3-File Pattern**: HTMLサイズ制限回避のため、JS/CSSを分離デプロイ
+4. **Bridge Function必須**: 新しいGAS関数は `scripts/add-bridge.js` にも追加が必要（詳細は `docs/DEVELOPMENT_GUIDE.md`）
 
 ### C. ビルドシステム
 ```
@@ -104,16 +105,22 @@ clasp deploy            # Create new version
 - [x] Bridge Injection: doPost 実装
 - [x] ブラウザで実データ表示確認（10,852件）
 
-## 5. 次のステップ (Phase 4+)
+### Phase 4: Customer Edit & Postal Code Features ✅ (2025-12-03)
+- [x] 顧客更新機能: `api_updateCustomer` GAS関数
+- [x] GASブリッジ修正: `scripts/add-bridge.js` にAPI関数追加
+- [x] 郵便番号→住所: 複数結果選択UI (zipcloud API)
+- [x] 住所→郵便番号: 逆引き機能 (HeartRails Geo API)
+- [x] 整合性チェック: 郵便番号と住所の不一致警告
+- [x] 開発ガイド: `docs/DEVELOPMENT_GUIDE.md` 作成
+
+## 5. 次のステップ (Phase 5+)
 
 ### 優先タスク
-1. **Search Functionality**: 顧客検索機能の実装
-2. **Pagination**: ページネーション改善
-3. **Customer Detail View**: 顧客詳細画面
-4. **CRUD Operations**: 作成・更新・削除機能
+1. **CRUD Operations - Create**: 顧客新規作成機能
+2. **CRUD Operations - Delete**: 顧客削除機能（論理削除）
+3. **Search Functionality**: 顧客検索機能の実装
 
 ### 将来的な拡張
-- **Address Lookup**: 双方向住所検索API（V10/V11で実装済み、移植予定）
 - **Relationships Display**: 顧客間の関係性表示
 - **Deals Integration**: 顧客に紐づく案件表示
 - **Voice-First Entry**: 音声録音 → Vertex AI 解析
@@ -127,9 +134,22 @@ clasp deploy            # Create new version
 ## 7. 参照ドキュメント
 
 - [CURRENT_STATUS.md](./CURRENT_STATUS.md) - 進捗状況
+- [docs/DEVELOPMENT_GUIDE.md](./docs/DEVELOPMENT_GUIDE.md) - **開発ガイド（必読）**
 - [docs/LESSONS_LEARNED_V10_V11.md](./docs/LESSONS_LEARNED_V10_V11.md) - V10/V11からの教訓
+
+## 8. 開発時の重要な注意点
+
+> **新規開発者（人間・AI問わず）は必ず `docs/DEVELOPMENT_GUIDE.md` を読んでください**
+
+### よくある失敗パターン
+
+| 症状 | 原因 | 解決策 |
+|------|------|--------|
+| Method not found | `add-bridge.js` にブリッジ関数がない | ブリッジ関数を追加 |
+| フォーム送信が動かない | Zodスキーマと既存データが不一致 | 既存データに合わせてスキーマ修正 |
+| 更新されない | 古いデプロイメントを使用 | `clasp deploy` で新バージョン作成 |
 
 ---
 
 *最終更新: 2025-12-03*
-*V10/V11統合完了*
+*最新デプロイ: @164*
