@@ -1,4 +1,4 @@
-// src/main.ts - RECOVERY MODE
+// src/main.ts - DEBUG MODE v2
 import { CustomerService } from './services/customer_service';
 
 function doGet(e: GoogleAppsScript.Events.DoGet) {
@@ -108,8 +108,9 @@ function api_getCustomers() {
   try {
     // Fetch ALL customers (no limit)
     // Use listCustomersPaginated with a large page size to get all data
+    // Note: page is 0-indexed, so page=0 gets the first batch
     const customerService = new CustomerService();
-    const result = customerService.listCustomersPaginated(1, 10000); // Get up to 10,000 customers
+    const result = customerService.listCustomersPaginated(0, 10000); // Get up to 10,000 customers (page 0)
 
     return JSON.stringify({
       status: 'success',
@@ -198,6 +199,88 @@ function api_getCustomerById(id: string) {
   }
 }
 
+/**
+ * Update customer by ID
+ */
+function api_updateCustomer(id: string, updates: Record<string, any>) {
+  try {
+    const customerService = new CustomerService();
+
+    // Transform form data to customer structure
+    const customerUpdates: Record<string, any> = {
+      name: updates.name,
+      nameKana: updates.nameKana,
+      gender: updates.gender,
+      phone: updates.phone,
+      mobile: updates.mobile,
+      email: updates.email,
+      address: {
+        postalCode: updates.postalCode,
+        prefecture: updates.prefecture,
+        city: updates.city,
+        town: updates.town,
+        building: updates.building,
+      },
+    };
+
+    const updatedCustomer = customerService.updateCustomer(id, customerUpdates);
+
+    return JSON.stringify({
+      status: 'success',
+      data: updatedCustomer
+    });
+  } catch (error: any) {
+    Logger.log('Error updating customer: ' + error.message);
+    return JSON.stringify({
+      status: 'error',
+      message: error.message,
+      data: null
+    });
+  }
+}
+
+/**
+ * Debug function to check Firestore connection and properties
+ */
+function api_debugFirestore() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const projectId = props.getProperty('FIRESTORE_PROJECT_ID');
+    const databaseId = props.getProperty('FIRESTORE_DATABASE_ID');
+    const email = props.getProperty('FIRESTORE_EMAIL');
+    const keyExists = !!props.getProperty('FIRESTORE_KEY');
+
+    // Try to fetch one customer
+    const customerService = new CustomerService();
+    let testResult = 'Not tested';
+    let customerCount = 0;
+    try {
+      const result = customerService.listCustomersPaginated(0, 5);
+      customerCount = result.data.length;
+      testResult = `Success: Got ${customerCount} customers`;
+    } catch (e: any) {
+      testResult = `Error: ${e.message}`;
+    }
+
+    return JSON.stringify({
+      status: 'success',
+      debug: {
+        projectId: projectId || 'NOT SET',
+        databaseId: databaseId || 'NOT SET',
+        email: email || 'NOT SET',
+        keyExists: keyExists,
+        testResult: testResult,
+        customerCount: customerCount
+      }
+    });
+  } catch (error: any) {
+    return JSON.stringify({
+      status: 'error',
+      message: error.message
+    });
+  }
+}
+
 // グローバルスコープに公開（GAS ランタイムが認識できるように）
 (globalThis as any).doGet = doGet;
 (globalThis as any).doPost = doPost;
@@ -205,3 +288,5 @@ function api_getCustomerById(id: string) {
 (globalThis as any).api_getCustomers = api_getCustomers;
 (globalThis as any).api_getCustomersPaginated = api_getCustomersPaginated;
 (globalThis as any).api_getCustomerById = api_getCustomerById;
+(globalThis as any).api_updateCustomer = api_updateCustomer;
+(globalThis as any).api_debugFirestore = api_debugFirestore;

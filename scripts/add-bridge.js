@@ -10,9 +10,12 @@ function doGet(e) { return globalThis.doGet(e); }
 function doPost(e) { return globalThis.doPost(e); }
 
 function api_getCustomers() { return globalThis.api_getCustomers(); }
-function api_getCustomersPaginated(page, pageSize, sortField, sortOrder) { 
-  return globalThis.api_getCustomersPaginated(page, pageSize, sortField, sortOrder); 
+function api_getCustomersPaginated(page, pageSize, sortField, sortOrder) {
+  return globalThis.api_getCustomersPaginated(page, pageSize, sortField, sortOrder);
 }
+function api_getCustomerById(id) { return globalThis.api_getCustomerById(id); }
+function api_updateCustomer(id, updates) { return globalThis.api_updateCustomer(id, updates); }
+function api_debugFirestore() { return globalThis.api_debugFirestore(); }
 
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();

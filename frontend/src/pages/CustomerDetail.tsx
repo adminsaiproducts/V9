@@ -58,9 +58,30 @@ export const CustomerDetail: React.FC = () => {
   };
 
   const handleUpdate = async (data: any) => {
-    // TODO: Implement update via callGAS('api_updateCustomer', id, data)
-    console.log('Update customer:', data);
-    setEditMode(false);
+    console.log('handleUpdate called with:', data);
+    console.log('Customer ID:', id);
+
+    if (!id) {
+      console.error('No customer ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Calling api_updateCustomer...');
+      const result = await callGAS<Customer>('api_updateCustomer', id, data);
+      console.log('Update result:', result);
+      // Reload customer data after update
+      await loadCustomer(id);
+      setEditMode(false);
+      alert('更新しました');
+    } catch (err: any) {
+      console.error('Failed to update customer:', err);
+      setError(err.message || '更新に失敗しました');
+      alert('更新エラー: ' + (err.message || '不明なエラー'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -72,6 +93,31 @@ export const CustomerDetail: React.FC = () => {
     const url = `${window.location.origin}${window.location.pathname}?view=customer_detail&id=${id}`;
     navigator.clipboard.writeText(url);
     alert('URLをクリップボードにコピーしました！');
+  };
+
+  // Format address for display
+  const formatAddress = (customer: Customer): string => {
+    if (!customer.address) return '-';
+    if (typeof customer.address === 'string') return customer.address;
+
+    const addr = customer.address;
+    const parts: string[] = [];
+
+    if (addr.postalCode) parts.push(`〒${addr.postalCode}`);
+    if (addr.prefecture) parts.push(addr.prefecture);
+    if (addr.city) parts.push(addr.city);
+    if (addr.town) parts.push(addr.town);
+    if (addr.building) parts.push(addr.building);
+
+    return parts.join(' ') || '-';
+  };
+
+  // Get gender display
+  const getGenderDisplay = (gender?: string): string => {
+    if (!gender) return '';
+    if (gender === 'male' || gender === '男') return '男性';
+    if (gender === 'female' || gender === '女') return '女性';
+    return gender;
   };
 
   if (loading) {
@@ -146,118 +192,211 @@ export const CustomerDetail: React.FC = () => {
 
         {/* Customer Details */}
         <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary">
+          {/* 基本情報 */}
+          <Grid size={12}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
               基本情報
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="body2" color="text.secondary">
               名前
             </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            <Typography variant="body1" sx={{ fontWeight: 500, mt: 0.5 }}>
               {customer.name}
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="body2" color="text.secondary">
               フリガナ
             </Typography>
-            <Typography variant="body1">
-              {customer.kana || customer.nameKana || '-'}
+            <Typography variant="body1" sx={{ mt: 0.5 }}>
+              {customer.nameKana || customer.kana || '-'}
             </Typography>
           </Grid>
 
-          {(customer as any).gender && (
-            <Grid item xs={12} md={6}>
+          {customer.gender && (
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="body2" color="text.secondary">
                 性別
               </Typography>
-              <Chip
-                label={
-                  (customer as any).gender === 'male' ? '男性' :
-                  (customer as any).gender === 'female' ? '女性' : 'その他'
-                }
-                size="small"
-              />
+              <Box sx={{ mt: 0.5 }}>
+                <Chip label={getGenderDisplay(customer.gender)} size="small" />
+              </Box>
             </Grid>
           )}
 
-          {/* Contact Information */}
-          <Grid item xs={12}>
+          {customer.type && (
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="body2" color="text.secondary">
+                顧客区分
+              </Typography>
+              <Box sx={{ mt: 0.5 }}>
+                <Chip
+                  label={customer.type === 'INDIVIDUAL' ? '個人' : '法人'}
+                  size="small"
+                  color={customer.type === 'INDIVIDUAL' ? 'default' : 'primary'}
+                />
+              </Box>
+            </Grid>
+          )}
+
+          {/* 連絡先 */}
+          <Grid size={12}>
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" color="text.secondary">
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
               連絡先
             </Typography>
           </Grid>
 
-          {customer.phone && (
-            <Grid item xs={12} md={6}>
-              <Typography variant="body2" color="text.secondary">
-                電話番号
-              </Typography>
-              <Typography variant="body1">
-                {customer.phone}
-              </Typography>
-            </Grid>
-          )}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography variant="body2" color="text.secondary">
+              電話番号
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 0.5 }}>
+              {customer.phone || '-'}
+            </Typography>
+          </Grid>
 
-          {customer.email && (
-            <Grid item xs={12} md={6}>
-              <Typography variant="body2" color="text.secondary">
-                メールアドレス
-              </Typography>
-              <Typography variant="body1">
-                {customer.email}
-              </Typography>
-            </Grid>
-          )}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography variant="body2" color="text.secondary">
+              携帯番号
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 0.5 }}>
+              {customer.mobile || '-'}
+            </Typography>
+          </Grid>
 
-          {/* Address */}
-          {customer.address && (
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography variant="body2" color="text.secondary">
+              メールアドレス
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 0.5 }}>
+              {customer.email || '-'}
+            </Typography>
+          </Grid>
+
+          {/* 住所 */}
+          <Grid size={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+              住所
+            </Typography>
+          </Grid>
+
+          {customer.address && typeof customer.address === 'object' && (
             <>
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  住所
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="body2" color="text.secondary">
+                  郵便番号
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 0.5 }}>
+                  {customer.address.postalCode ? `〒${customer.address.postalCode}` : '-'}
                 </Typography>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
-                  住所
+                  都道府県
                 </Typography>
-                <Typography variant="body1">
-                  {customer.address}
+                <Typography variant="body1" sx={{ mt: 0.5 }}>
+                  {customer.address.prefecture || '-'}
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="body2" color="text.secondary">
+                  市区町村
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 0.5 }}>
+                  {customer.address.city || '-'}
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="body2" color="text.secondary">
+                  町域・番地
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 0.5 }}>
+                  {customer.address.town || '-'}
+                </Typography>
+              </Grid>
+
+              <Grid size={12}>
+                <Typography variant="body2" color="text.secondary">
+                  建物名・部屋番号
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 0.5 }}>
+                  {customer.address.building || '-'}
                 </Typography>
               </Grid>
             </>
           )}
 
-          {/* Metadata */}
-          <Grid item xs={12}>
+          {(!customer.address || typeof customer.address === 'string') && (
+            <Grid size={12}>
+              <Typography variant="body2" color="text.secondary">
+                住所
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 0.5 }}>
+                {formatAddress(customer)}
+              </Typography>
+            </Grid>
+          )}
+
+          {/* 備考 */}
+          {customer.notes && (
+            <>
+              <Grid size={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+                  備考
+                </Typography>
+              </Grid>
+
+              <Grid size={12}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {customer.notes}
+                </Typography>
+              </Grid>
+            </>
+          )}
+
+          {/* システム情報 */}
+          <Grid size={12}>
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" color="text.secondary">
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
               システム情報
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          {customer.originalId && (
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="body2" color="text.secondary">
+                元ID (GenieeCRM)
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 0.5, fontFamily: 'monospace' }}>
+                {customer.originalId}
+              </Typography>
+            </Grid>
+          )}
+
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="body2" color="text.secondary">
               作成日時
             </Typography>
-            <Typography variant="body1">
+            <Typography variant="body1" sx={{ mt: 0.5 }}>
               {new Date(customer.createdAt).toLocaleString('ja-JP')}
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="body2" color="text.secondary">
               更新日時
             </Typography>
-            <Typography variant="body1">
+            <Typography variant="body1" sx={{ mt: 0.5 }}>
               {new Date(customer.updatedAt).toLocaleString('ja-JP')}
             </Typography>
           </Grid>
@@ -270,7 +409,20 @@ export const CustomerDetail: React.FC = () => {
           open={editMode}
           onClose={() => setEditMode(false)}
           onSubmit={handleUpdate}
-          initialData={customer as any}
+          initialData={{
+            name: customer.name,
+            nameKana: customer.nameKana || customer.kana || '',
+            gender: customer.gender || '',
+            type: 'INDIVIDUAL',
+            postalCode: customer.address?.postalCode || '',
+            prefecture: customer.address?.prefecture || '',
+            city: customer.address?.city || '',
+            town: customer.address?.town || '',
+            building: customer.address?.building || '',
+            phone: customer.phone || '',
+            mobile: customer.mobile || '',
+            email: customer.email || '',
+          }}
           mode="edit"
         />
       )}

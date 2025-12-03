@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react';
 
-interface PostalCodeResult {
+export interface PostalCodeResult {
     prefecture: string;
     city: string;
     town: string;
 }
 
-export const usePostalCode = (postalCode: string) => {
+interface UsePostalCodeReturn {
+    data: PostalCodeResult | null;
+    results: PostalCodeResult[];
+    loading: boolean;
+    error: string | null;
+    hasMultipleResults: boolean;
+    selectResult: (index: number) => void;
+}
+
+export const usePostalCode = (postalCode: string): UsePostalCodeReturn => {
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<PostalCodeResult | null>(null);
+    const [results, setResults] = useState<PostalCodeResult[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -16,6 +26,7 @@ export const usePostalCode = (postalCode: string) => {
         const cleaned = postalCode.replace(/[^0-9]/g, '');
         if (cleaned.length !== 7) {
             setData(null);
+            setResults([]);
             return;
         }
 
@@ -30,19 +41,30 @@ export const usePostalCode = (postalCode: string) => {
                 const json = await response.json();
 
                 if (json.status === 200 && json.results && json.results.length > 0) {
-                    const result = json.results[0];
-                    setData({
+                    const allResults: PostalCodeResult[] = json.results.map((result: any) => ({
                         prefecture: result.address1,
                         city: result.address2,
                         town: result.address3,
-                    });
+                    }));
+
+                    setResults(allResults);
+
+                    // If only one result, auto-select it
+                    if (allResults.length === 1) {
+                        setData(allResults[0]);
+                    } else {
+                        // Multiple results - don't auto-select, let user choose
+                        setData(null);
+                    }
                 } else {
                     setError('郵便番号が見つかりませんでした');
                     setData(null);
+                    setResults([]);
                 }
             } catch (err) {
                 setError('住所の取得に失敗しました');
                 setData(null);
+                setResults([]);
             } finally {
                 setLoading(false);
             }
@@ -52,5 +74,18 @@ export const usePostalCode = (postalCode: string) => {
         return () => clearTimeout(timeoutId);
     }, [postalCode]);
 
-    return { data, loading, error };
+    const selectResult = (index: number) => {
+        if (index >= 0 && index < results.length) {
+            setData(results[index]);
+        }
+    };
+
+    return {
+        data,
+        results,
+        loading,
+        error,
+        hasMultipleResults: results.length > 1,
+        selectResult,
+    };
 };
