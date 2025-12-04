@@ -23,40 +23,113 @@ export interface Temple extends FirestoreDocument {
   notes?: string;
 }
 
+// 住所構造 (Address)
+export interface CustomerAddress {
+  postalCode?: string;    // 郵便番号
+  prefecture?: string;    // 都道府県
+  city?: string;          // 市区
+  town?: string;          // 町村 + 番地
+  building?: string;      // 建物名
+}
+
+// 典礼責任者 (Memorial/Funeral Contact)
+export interface MemorialContact {
+  name?: string;          // 典礼責任者
+  relationship?: string;  // 典礼責任者続柄
+  postalCode?: string;    // 典礼責任者郵便番号
+  address?: string;       // 典礼責任者住所
+  phone?: string;         // 典礼責任者電話番号
+  mobile?: string;        // 典礼責任者携帯番号
+  email?: string;         // 典礼責任者e-mail
+}
+
+// 使用者変更情報 (User Change Info)
+export interface UserChangeInfo {
+  hasChanged?: boolean;       // 使用者変更
+  reason?: string;            // 使用者変更「その他」の理由
+  previousUserName?: string;  // 旧使用者氏名
+  relationshipToNew?: string; // 新使用者との続柄
+}
+
+// 顧客ニーズ・嗜好 (Customer Needs/Preferences)
+export interface CustomerNeeds {
+  transportation?: string;    // 交通手段（車、電車、バス）、最寄り駅、拠点までの所要時間
+  searchReason?: string;      // お探しの理由
+  familyStructure?: string;   // 家族構成
+  religiousSect?: string;     // 宗旨・宗派
+  preferredPlan?: string;     // 希望プラン
+  burialPlannedCount?: string;// 埋葬予定人数
+  purchaseTiming?: string;    // お墓の購入時期
+  appealPoints?: string;      // 気に入っていただけた点
+  appealPointsOther?: string; // 上で「その他」だった内容
+  concerns?: string;          // お墓について気になること
+  otherConsultation?: string; // その他のご相談
+}
+
+// 関係性情報
+export interface CustomerRelationship {
+  relatedCustomerId: string;  // 相手先顧客ID
+  relationType: string;       // 関係性 (e.g., "家族", "紹介", "同一住所")
+  description?: string;       // 詳細
+}
+
 // 顧客 (Customers)
 // GenieeCRMからの移行データ。法人・個人区分、住所分割、関係性を含む。
+// Based on GENIEE CRM CSV structure (52 columns)
 export interface Customer extends FirestoreDocument {
-  // 基本情報
-  name: string;
-  nameKana?: string;
-  type: 'CORPORATION' | 'INDIVIDUAL'; // 法人 | 個人
-  gender?: string; // 性別
+  // === 識別情報 ===
+  recordId?: string;        // レコードID (GENIEE ID)
+  trackingNo?: string;      // 追客NO
+  parentChildFlag?: string; // 親子フラグ
+  branch?: string;          // 拠点
 
-  // 連絡先
-  phone?: string;
-  mobile?: string;
-  email?: string;
+  // === 基本情報 ===
+  name: string;             // 使用者名
+  nameKana?: string;        // 使用者名（フリガナ）
+  type?: 'CORPORATION' | 'INDIVIDUAL'; // 法人 | 個人
+  gender?: string;          // 性別
+  age?: number;             // 年齢
 
-  // 住所 (構造化)
-  address: {
-    postalCode?: string;
-    prefecture: string; // 都道府県
-    city: string;       // 市区町村
-    town: string;       // 町域・番地
-    building?: string;  // 建物名・部屋番号
-  };
+  // === 連絡先 ===
+  phone?: string;           // 電話番号
+  mobile?: string;          // 携帯番号
+  email?: string;           // e-mail
 
-  // 関係性情報
-  // 備考欄や同一住所からの推論、または明示的な関係性
-  relationships: {
-    relatedCustomerId: string; // 相手先顧客ID
-    relationType: string;      // 関係性 (e.g., "家族", "紹介", "同一住所")
-    description?: string;      // 詳細
-  }[];
+  // === 住所 (構造化) ===
+  address?: CustomerAddress;
 
-  // メタデータ
-  originalId?: string; // 移行元のID (GenieeCRM ID)
-  notes?: string;      // 備考
+  // === CRM管理情報 ===
+  notes?: string;                   // 備考
+  visitRoute?: string;              // 来寺経緯
+  otherCompanyReferralDate?: string;// 他社紹介日
+  receptionist?: string;            // 受付担当
+  doNotContact?: boolean;           // 営業活動不可
+  crossSellTarget?: boolean;        // クロスセル対象
+
+  // === 典礼責任者 ===
+  memorialContact?: MemorialContact;
+
+  // === 使用者変更 ===
+  userChangeInfo?: UserChangeInfo;
+
+  // === 活動・商談 ===
+  activityCount?: number;   // 活動履歴件数
+  dealCount?: number;       // 商談件数
+
+  // === ニーズ・嗜好 ===
+  needs?: CustomerNeeds;
+
+  // === 関係性 ===
+  relationships?: CustomerRelationship[];
+
+  // === システム情報 ===
+  originalId?: string;        // 移行元のID (GenieeCRM ID)
+  role?: string;              // ロール
+  lastActivityDate?: string;  // 最終活動日時
+  lastTransactionDate?: string; // 最終取引日
+
+  // === 削除フラグ ===
+  deletedAt?: string;         // 論理削除日時
 }
 
 // 関係性マスタ (RelationshipTypes)
@@ -117,4 +190,36 @@ export interface AICache extends FirestoreDocument {
   response: string;
   model: string;
   expiresAt: string; // ISO 8601
+}
+
+// 担当者マスタ (Staff)
+// Google Admin / GENIEE CRMから移行したスタッフ情報
+export interface Staff extends FirestoreDocument {
+  name: string;           // 担当者名
+  email?: string;         // メールアドレス
+  role?: string;          // 役割 (sales, manager, admin等)
+  isActive: boolean;      // 有効フラグ
+  branch?: string;        // 所属拠点
+  phone?: string;         // 内線番号等
+  notes?: string;         // 備考
+}
+
+// 商品マスタ (Products)
+// 各寺院の商品・料金情報
+export interface Product extends FirestoreDocument {
+  templeId?: string;      // Reference to Temples
+  templeName: string;     // 寺院名
+  category: string;       // カテゴリ (旧区画, 新区画等)
+  planName: string;       // プラン名
+  stoneType?: string;     // 石種
+  // 価格情報
+  platePrice?: number | null;        // プレート代
+  engravingPrice?: number | null;    // 彫刻代
+  boneContainerPrice?: number | null;// 骨壺代
+  boneHandlingFee?: number | null;   // 骨上げ代
+  bonePickupFee?: number | null;     // お骨引き取り代
+  boneProcessingFee?: number | null; // 粉骨加工代
+  dryingFee?: number | null;         // 乾燥代
+  notes?: string;         // 備考
+  isActive: boolean;      // 有効フラグ
 }

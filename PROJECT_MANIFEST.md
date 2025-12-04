@@ -113,15 +113,34 @@ clasp deploy            # Create new version
 - [x] 整合性チェック: 郵便番号と住所の不一致警告
 - [x] 開発ガイド: `docs/DEVELOPMENT_GUIDE.md` 作成
 
-## 5. 次のステップ (Phase 5+)
+### Phase 5: API最適化 & 関係性機能 🔄 (2025-12-04 進行中)
+- [x] URLFetch クォータ超過エラー対応
+  - キャッシュシステム実装（`getCachedOrFetch`）
+  - ページネーション対応（`api_getCustomersPaginated`）
+  - フロントエンドの楽観的更新（Optimistic Updates）
+- [x] 関係性機能UI実装
+  - `RelationshipList.tsx` - 関係性一覧表示
+  - `RelationshipForm.tsx` - 関係性追加/編集ダイアログ
+  - `RelationshipResolver.tsx` - 手動確認ダイアログ
+- [x] GAS Relationship API実装
+  - `api_getCustomerRelationships` - 顧客関係性取得
+  - `api_createRelationship` - 関係性作成
+  - `api_updateRelationship` - 関係性更新
+  - `api_deleteRelationship` - 関係性削除
+  - `api_resolveRelationship` - 関係性確認/却下
+- [x] Firestore queryDocuments対応（WHERE句対応）
+- [ ] 関係性マスターCSV読み込み（Shift-JIS対応必要）
+- [ ] 関係性データFirestoreインポート
+
+## 5. 次のステップ (Phase 6+)
 
 ### 優先タスク
-1. **CRUD Operations - Create**: 顧客新規作成機能
-2. **CRUD Operations - Delete**: 顧客削除機能（論理削除）
-3. **Search Functionality**: 顧客検索機能の実装
+1. **関係性機能完成**: マスターCSV読み込み、Firestoreインポート
+2. **CRUD Operations - Create**: 顧客新規作成機能
+3. **CRUD Operations - Delete**: 顧客削除機能（論理削除）
+4. **Search Functionality**: 顧客検索機能の実装
 
 ### 将来的な拡張
-- **Relationships Display**: 顧客間の関係性表示
 - **Deals Integration**: 顧客に紐づく案件表示
 - **Voice-First Entry**: 音声録音 → Vertex AI 解析
 
@@ -133,9 +152,21 @@ clasp deploy            # Create new version
 
 ## 7. 参照ドキュメント
 
-- [CURRENT_STATUS.md](./CURRENT_STATUS.md) - 進捗状況
-- [docs/DEVELOPMENT_GUIDE.md](./docs/DEVELOPMENT_GUIDE.md) - **開発ガイド（必読）**
-- [docs/LESSONS_LEARNED_V10_V11.md](./docs/LESSONS_LEARNED_V10_V11.md) - V10/V11からの教訓
+| ドキュメント | 役割 | 更新タイミング | 必読度 |
+|-------------|------|----------------|--------|
+| [CURRENT_STATUS.md](./CURRENT_STATUS.md) | 進捗・完了機能・変更履歴 | 機能完了/問題解決時 | ★★★ |
+| [PROJECT_MANIFEST.md](./PROJECT_MANIFEST.md) | プロジェクト全体像・鉄則・環境設定 | アーキテクチャ変更時 | ★★★ |
+| [docs/DEVELOPMENT_GUIDE.md](./docs/DEVELOPMENT_GUIDE.md) | **開発ガイド（必読）** - 知見・失敗・ベストプラクティス | 新しい知見が得られたとき | ★★★ |
+| [docs/SFA_DESIGN.md](./docs/SFA_DESIGN.md) | SFA設計書 - 商談・契約・レポート設計 | SFA機能追加時 | ★★☆ |
+| [docs/LESSONS_LEARNED_V10_V11.md](./docs/LESSONS_LEARNED_V10_V11.md) | V10/V11からの教訓（参考） | 基本的に更新不要 | ★☆☆ |
+
+### ドキュメントの使い方
+
+1. **開発開始時**: `CURRENT_STATUS.md` → `PROJECT_MANIFEST.md` → `DEVELOPMENT_GUIDE.md` の順で読む
+2. **新機能実装時**: 該当する設計書（`SFA_DESIGN.md`等）を確認してから実装
+3. **問題発生時**: `DEVELOPMENT_GUIDE.md` のトラブルシューティングを確認
+4. **セッション終了時**: 知見を `DEVELOPMENT_GUIDE.md` に追記し、`CURRENT_STATUS.md` の変更履歴を更新
+5. **データ移行時**: `migration/output/gas-scripts/` の正式データファイルを使用（後述）
 
 ## 8. 開発時の重要な注意点
 
@@ -148,8 +179,56 @@ clasp deploy            # Create new version
 | Method not found | `add-bridge.js` にブリッジ関数がない | ブリッジ関数を追加 |
 | フォーム送信が動かない | Zodスキーマと既存データが不一致 | 既存データに合わせてスキーマ修正 |
 | 更新されない | 古いデプロイメントを使用 | `clasp deploy` で新バージョン作成 |
+| URLFetch exceeded | GAS日次クォータ超過 | キャッシュ・ページネーション実装、17:00 JSTリセット待ち |
+| CSVが文字化け | Shift-JISファイルをUTF-8で読込 | PowerShellでCP932指定して読込 |
+| インポートデータ競合 | 複数箇所で同じデータを生成 | Single Source of Truth: `migration/output/gas-scripts/` のみ使用 |
+
+## 9. データ移行（Firestoreインポート）
+
+### 正式データファイル（Single Source of Truth）
+
+**重要**: インポート用データは `migration/output/gas-scripts/` のみを使用してください。
+`data/import/` は作業用一時ファイル置き場であり、正式データではありません。
+
+| ファイル | 件数 | コレクション | 説明 |
+|---------|------|-------------|------|
+| `firestore-customers.json` | 10,852件 | Customers | 顧客マスタ |
+| `firestore-temples.json` | 63件 | Temples | 寺院マスタ |
+| `firestore-staff.json` | 57件 | Staff | 担当者マスタ |
+| `firestore-products.json` | 66件 | Products | 商品マスタ |
+| `firestore-deals.json` | 3,651件 | Deals | 商談データ |
+| `deals-batches/` | 37バッチ | Deals | 商談分割（100件/バッチ） |
+
+### インポート手順
+
+1. **Google Driveにアップロード**: 上記JSONファイルをGoogle Driveにアップロード
+2. **ファイルIDを取得**: アップロードしたファイルのIDをコピー
+3. **GASエディタで実行**:
+   ```javascript
+   // migration-master.gs の MIGRATION_FILE_ID を設定
+   const MIGRATION_FILE_ID = 'YOUR_FILE_ID_HERE';
+
+   // 実行
+   runFullMigration();
+   ```
+
+### GASスクリプト
+
+| ファイル | 用途 |
+|---------|------|
+| `migration-master.gs` | メインインポートスクリプト（顧客・マスタデータ） |
+| `import-relationships.gs` | 関係性データインポート |
+
+### データ再生成
+
+マスタデータのスキーマを変更した場合:
+```bash
+node migration/scripts/regenerate-migration-data.js
+```
+
+このスクリプトは `data/import/` のデータを `src/types/firestore.ts` のスキーマに合わせて変換し、`migration/output/gas-scripts/` に出力します。
 
 ---
 
-*最終更新: 2025-12-03*
+*最終更新: 2025-12-04*
 *最新デプロイ: @164*

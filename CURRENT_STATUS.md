@@ -73,19 +73,69 @@ dist/
 23. **整合性チェック:** 郵便番号と住所の不一致警告機能
 24. **開発ガイド作成:** `docs/DEVELOPMENT_GUIDE.md` - 知見・失敗・ベストプラクティス
 
-## 次のステップ (Phase 5: Extended Features)
+### Phase 5: API最適化 & 関係性機能 ✅ (2025-12-04 完了)
+25. **URLFetch クォータ超過対応:**
+    - 原因: GAS日次URLFetchクォータ（20,000 calls/day for Consumer）超過
+    - 対策1: キャッシュシステム実装（`getCachedOrFetch`、5分TTL）
+    - 対策2: ページネーション対応（`api_getCustomersPaginated`）
+    - 対策3: フロントエンド楽観的更新（API呼び出し削減）
+    - 教訓: クォータは17:00 JSTにリセット
+26. **関係性機能UI実装:**
+    - `RelationshipList.tsx` - 関係性一覧表示（編集/削除/確認ボタン）
+    - `RelationshipForm.tsx` - 関係性追加/編集ダイアログ（顧客検索付き）
+    - `RelationshipResolver.tsx` - 不確実な関係性の手動確認ダイアログ
+27. **GAS Relationship API実装:**
+    - `api_getCustomerRelationships` - 顧客の関係性取得
+    - `api_createRelationship` - 関係性作成
+    - `api_updateRelationship` - 関係性更新
+    - `api_deleteRelationship` - 関係性削除
+    - `api_resolveRelationship` - 関係性確認/却下
+    - `migration_importRelationships` - 関係性一括インポート
+28. **Firestore queryDocuments対応:** WHERE句によるクエリ実装
+29. **関係性マスター:** `data/relationship/CRM_V7_Database - RelationshipTypes.csv`
+    - 問題: Shift-JIS (CP932) エンコーディングで文字化け発生
+    - 解決策: PowerShellで `[System.Text.Encoding]::GetEncoding(932)` 使用
+    - 含まれるKANコード: KAN1001-KAN9999（約50種類の関係性タイプ）
+
+### Phase 6: マスタデータ統合 & Firestoreインポート準備 🔄 (2025-12-04 進行中)
+30. **インポートデータ重複問題の解消:**
+    - 問題: `data/import/customers.json` と `migration/output/gas-scripts/firestore-customers.json` が競合
+    - 原因: 2つの異なるスキーマで同じデータを生成していた
+    - 解決: `data/import/customers.json` を削除、`firestore-customers.json` を正式データとして採用
+    - 教訓: **データ生成は1か所で行い、Single Source of Truthを維持する**
+31. **Firestoreスキーマ拡張:**
+    - `src/types/firestore.ts` に `Staff` と `Product` インターフェースを追加
+    - 担当者マスタ: name, email, role, isActive, branch, phone, notes
+    - 商品マスタ: templeId, templeName, category, planName, 各種価格情報
+32. **マスタデータ再生成:**
+    - `migration/scripts/regenerate-migration-data.js` を作成
+    - 既存の `data/import/` データを正式Firestoreスキーマに変換
+    - 出力: firestore-temples.json (63件), firestore-staff.json (57件), firestore-products.json (66件), firestore-deals.json (3,651件)
+33. **不要ファイルの整理:**
+    - `import-customers.gs` 削除（データ埋め込み式は不適切、JSONファイル方式を採用）
+    - `migration-master.gs` と `import-relationships.gs` は保持
+
+## 次のステップ (Phase 7: Firestoreインポート実行)
 
 ### 優先タスク
-1. [x] ~~**Customer Detail View:** 顧客詳細画面の実装~~ ✅ 完了
-2. [x] ~~**CRUD Operations - Update:** 顧客更新機能~~ ✅ 完了
+1. [ ] **Firestoreインポート実行:** Google DriveにJSONをアップロード → GAS経由でインポート
+2. [ ] **関係性機能完成:** マスターCSV読み込み、Firestoreインポート
 3. [ ] **CRUD Operations - Create:** 顧客新規作成機能
 4. [ ] **CRUD Operations - Delete:** 顧客削除機能（論理削除）
 5. [ ] **Search Functionality:** 顧客検索機能の実装（名前、住所、電話番号）
 
+### インポート対象ファイル（migration/output/gas-scripts/）
+| ファイル | 件数 | コレクション |
+|---------|------|-------------|
+| `firestore-customers.json` | 10,852件 | Customers |
+| `firestore-temples.json` | 63件 | Temples |
+| `firestore-staff.json` | 57件 | Staff |
+| `firestore-products.json` | 66件 | Products |
+| `firestore-deals.json` | 3,651件 | Deals |
+| `deals-batches/` | 37バッチ | Deals（分割） |
+
 ### 将来的な拡張
-- **Relationships Display:** 顧客間の関係性表示
 - **Deals Integration:** 顧客に紐づく案件表示
-- **Performance Optimization:** Virtual Scrolling, Cache最適化
 - **Voice-First Entry:** 音声録音 → Vertex AI 解析
 
 ## 既知の課題
@@ -125,8 +175,19 @@ V10およびV11は開発環境の不安定さ（clasp + OneDrive問題、Script 
 | 2025-12-03 | FIX | GASブリッジ関数の追加忘れ問題を解決 | ✅ Done |
 | 2025-12-03 | FIX | Zodスキーマと既存データの整合性問題を解決 | ✅ Done |
 | 2025-12-03 | DOCS | 開発ガイド (DEVELOPMENT_GUIDE.md) 作成 | ✅ Done |
+| 2025-12-04 | FIX | URLFetch クォータ超過対応（キャッシュ・ページネーション実装） | ✅ Done |
+| 2025-12-04 | FEATURE | 関係性機能UI（RelationshipList/Form/Resolver）実装 | ✅ Done |
+| 2025-12-04 | FEATURE | 関係性API（CRUD + resolve）実装 | ✅ Done |
+| 2025-12-04 | FEATURE | Firestore queryDocuments（WHERE句）対応 | ✅ Done |
+| 2025-12-04 | ISSUE | 関係性マスターCSVのShift-JIS文字化け問題を発見 | ✅ Done |
+| 2025-12-04 | FIX | iconv-liteでShift-JIS CSV読込、RELATIONSHIP_TYPES更新（51種類） | ✅ Done |
+| 2025-12-04 | FIX | data/import/customers.json と migration版の競合解消 | ✅ Done |
+| 2025-12-04 | SCHEMA | Staff, Product インターフェースを firestore.ts に追加 | ✅ Done |
+| 2025-12-04 | SCRIPT | regenerate-migration-data.js 作成（正式スキーマでデータ再生成） | ✅ Done |
+| 2025-12-04 | DATA | firestore-temples/staff/products/deals.json 生成完了 | ✅ Done |
+| 2025-12-04 | CLEANUP | import-customers.gs 削除（JSONファイル方式に統一） | ✅ Done |
 
 ---
 
-*最終更新: 2025-12-03*
+*最終更新: 2025-12-04*
 *最新デプロイ: @164*

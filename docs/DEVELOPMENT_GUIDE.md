@@ -128,6 +128,63 @@ const handleUpdate = async (data: any) => {
 - ユーザーに選択UIを表示
 - 自動選択せずに明示的な選択を求める
 
+### 3.3 GAS URLFetch クォータ制限（重要）
+
+**問題:**
+- GASのURLFetchには日次クォータ制限がある
+- Consumer (無料) アカウント: **20,000 calls/day**
+- Firestore REST API呼び出しもこれにカウントされる
+- クォータ超過時: `Exception: Service invoked too many times in one day: urlfetch`
+
+**解決策:**
+```typescript
+// ✅ キャッシュの実装（5分TTL）
+function getCachedOrFetch(cacheKey: string, fetchFn: () => string): string {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(cacheKey);
+
+  if (cached) {
+    Logger.log(`[Cache HIT] ${cacheKey}`);
+    return cached;
+  }
+
+  Logger.log(`[Cache MISS] ${cacheKey}`);
+  const result = fetchFn();
+
+  // GAS Cache has 100KB limit per key
+  if (result.length < 100000) {
+    cache.put(cacheKey, result, 300); // 5 minutes TTL
+  }
+
+  return result;
+}
+```
+
+**ページネーションの実装:**
+```typescript
+// 全件取得ではなく、ページ単位で取得
+function api_getCustomersPaginated(page: number, pageSize: number) {
+  const cacheKey = `customers_p${page}_s${pageSize}`;
+  return getCachedOrFetch(cacheKey, () => {
+    // Firestoreから指定ページのみ取得
+  });
+}
+```
+
+**フロントエンドでの楽観的更新:**
+```typescript
+// 更新後にAPIを再呼び出しせず、ローカルステートを直接更新
+const handleUpdate = async (data) => {
+  await callGAS('api_updateCustomer', id, data);
+  // ❌ await refetch(); // 追加のAPI呼び出し
+  // ✅ setLocalData(prev => ({ ...prev, ...data })); // ローカル更新
+};
+```
+
+**クォータリセット:**
+- 日次クォータは **17:00 JST (08:00 UTC)** にリセット
+- 開発中にクォータ超過した場合は待機が必要
+
 ## 4. 開発フロー
 
 ### 4.1 新機能追加の標準フロー
@@ -157,6 +214,41 @@ const handleUpdate = async (data: any) => {
    - 実データで動作確認
 ```
 
+### 3.4 CSVファイルの文字エンコーディング（Shift-JIS問題）
+
+**問題:**
+- 日本語CSVファイルの多くはShift-JIS (CP932) でエンコードされている
+- Node.js/PowerShellのデフォルトはUTF-8
+- そのまま読むと文字化け: `KAN�R�[�h,�֌W����...`
+
+**解決策:**
+
+**PowerShellでの読み込み:**
+```powershell
+# Shift-JIS (CP932) で読み込み
+[System.IO.File]::ReadAllText(
+  'path\to\file.csv',
+  [System.Text.Encoding]::GetEncoding(932)
+)
+```
+
+**Node.jsでの読み込み (iconv-lite使用):**
+```javascript
+const iconv = require('iconv-lite');
+const fs = require('fs');
+
+const buffer = fs.readFileSync('path/to/file.csv');
+const content = iconv.decode(buffer, 'Shift_JIS');
+```
+
+**対象ファイル例:**
+- `data/relationship/CRM_V7_Database - RelationshipTypes.csv` (関係性マスター)
+- `data/genieeCRM/*.csv` (GENIEEエクスポートデータ)
+
+**エンコーディング判別方法:**
+- ファイルをメモ帳で開き「名前を付けて保存」でエンコーディングを確認
+- または `file -i filename.csv` (Linux/WSL)
+
 ### 4.2 トラブルシューティングチェックリスト
 
 | 症状 | 確認項目 |
@@ -165,6 +257,8 @@ const handleUpdate = async (data: any) => {
 | フォーム送信が動かない | Zodスキーマと既存データの整合性 |
 | データが更新されない | デプロイメントバージョンが最新か |
 | コンソールに警告 | MUIコンポーネントのprops確認 |
+| URLFetch exceeded | キャッシュ実装、17:00 JSTまで待機 |
+| CSVが文字化け | Shift-JIS (CP932) でエンコードされている可能性 |
 
 ## 5. ファイル構成と責務
 
@@ -172,13 +266,24 @@ const handleUpdate = async (data: any) => {
 V9/
 ├── src/main.ts                    # GAS API関数（エントリーポイント）
 ├── src/services/                  # ビジネスロジック
+│   ├── firestore.ts               # Firestore REST API（queryDocuments含む）
+│   └── customer_service.ts        # 顧客サービス
 ├── scripts/add-bridge.js          # GASブリッジ関数（重要！）
 ├── frontend/src/
-│   ├── api/client.ts              # GAS呼び出しラッパー
-│   ├── api/types.ts               # 型定義（Firestoreスキーマと一致させる）
-│   ├── components/                # UIコンポーネント
+│   ├── api/
+│   │   ├── client.ts              # GAS呼び出しラッパー
+│   │   ├── types.ts               # 型定義（Firestoreスキーマと一致させる）
+│   │   └── relationships.ts       # 関係性API & マスターデータ
+│   ├── components/
+│   │   ├── Customer/              # 顧客関連コンポーネント
+│   │   └── Relationship/          # 関係性コンポーネント
+│   │       ├── RelationshipList.tsx    # 関係性一覧
+│   │       ├── RelationshipForm.tsx    # 追加/編集フォーム
+│   │       └── RelationshipResolver.tsx # 手動確認ダイアログ
 │   ├── hooks/                     # カスタムフック（API連携等）
 │   └── pages/                     # ページコンポーネント
+├── data/
+│   └── relationship/              # 関係性マスターCSV（Shift-JIS）
 ├── docs/
 │   ├── DEVELOPMENT_GUIDE.md       # 本ドキュメント
 │   └── LESSONS_LEARNED_V10_V11.md # 過去の教訓
@@ -203,6 +308,22 @@ V9/
 
 4. **デバッグ時**
    - console.logとalertを追加してどこまで処理が進んでいるか確認
+
+5. **CSVファイルを読み込む場合**
+   - 日本語CSVはほぼShift-JIS（CP932）
+   - iconv-liteまたはPowerShellでエンコーディング指定して読込
+
+6. **大量データを扱う場合**
+   - キャッシュ実装を検討（`CacheService`）
+   - ページネーション実装を検討
+   - URLFetch クォータ（20,000/day）に注意
+
+7. **インポートデータを生成する場合（重要）**
+   - **Single Source of Truth**: データ生成は1か所で行う
+   - 正式データは `migration/output/gas-scripts/` に配置
+   - `data/import/` は一時ファイル置き場（コミットしない）
+   - スキーマは `src/types/firestore.ts` と一致させる
+   - 複数の場所で同じデータを生成しない（競合の原因）
 
 ## 7. ドキュメント運用ルール
 
@@ -259,5 +380,5 @@ git commit -m "feat: Add api_xxx function
 
 ---
 
-*最終更新: 2025-12-03*
+*最終更新: 2025-12-04*
 *作成者: Claude Code*
