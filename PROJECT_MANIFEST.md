@@ -13,7 +13,7 @@
 
 ### V10/V11 統合後の位置づけ
 V10およびV11の開発は環境の不安定さにより廃止され、V9が唯一の開発環境として継続。
-V10/V11で得られた知見は `docs/LESSONS_LEARNED_V10_V11.md` に統合済み。
+V10/V11で得られた知見は `docs/DEVELOPMENT_GUIDE.md` セクション9に統合済み。
 
 ## 1. 環境設定
 
@@ -83,7 +83,7 @@ clasp deploy            # Create new version
 ```
 
 ### 既知の問題と対策
-- **GAS :// パターン問題**: JavaScriptに`://`が含まれるとGASがコメントと誤認識。Base64エンコーディングで解決可能（詳細は `docs/LESSONS_LEARNED_V10_V11.md`）
+- **GAS :// パターン問題**: JavaScriptに`://`が含まれるとGASがコメントと誤認識。Base64エンコーディングで解決可能（詳細は `docs/DEVELOPMENT_GUIDE.md` セクション9.1）
 - **clasp + OneDrive**: 同期問題が発生する場合あり。`.clasp.json`のScript IDを確認
 
 ## 4. 完了済み機能
@@ -113,7 +113,7 @@ clasp deploy            # Create new version
 - [x] 整合性チェック: 郵便番号と住所の不一致警告
 - [x] 開発ガイド: `docs/DEVELOPMENT_GUIDE.md` 作成
 
-### Phase 5: API最適化 & 関係性機能 🔄 (2025-12-04 進行中)
+### Phase 5: API最適化 & 関係性機能 ✅ (2025-12-04 完了)
 - [x] URLFetch クォータ超過エラー対応
   - キャッシュシステム実装（`getCachedOrFetch`）
   - ページネーション対応（`api_getCustomersPaginated`）
@@ -129,10 +129,21 @@ clasp deploy            # Create new version
   - `api_deleteRelationship` - 関係性削除
   - `api_resolveRelationship` - 関係性確認/却下
 - [x] Firestore queryDocuments対応（WHERE句対応）
-- [ ] 関係性マスターCSV読み込み（Shift-JIS対応必要）
-- [ ] 関係性データFirestoreインポート
 
-## 5. 次のステップ (Phase 6+)
+### Phase 6: マスタデータ統合 & Firestoreインポート ✅ (2025-12-05 完了)
+- [x] インポートデータ重複問題の解消（Single Source of Truth）
+- [x] Firestoreスキーマ拡張（Staff, Product）
+- [x] マスタデータ再生成（63寺院, 57担当者, 66商品, 3,651商談）
+- [x] Firestoreインポート完了（14,689件）
+- [x] migration-master.gs batchWrite API最適化
+
+### Phase 7: 典礼責任者顧客データ統合 ✅ (2025-12-05 完了)
+- [x] 典礼責任者顧客の自動生成（M0001〜M1766: 1,766件）
+- [x] 顧客-典礼責任者の関係性作成（1,775件）
+- [x] 顧客一覧のソート順修正（数字追客NOを優先表示）
+- [x] 住所データ構造問題の修正（JSON文字列→オブジェクト、town/streetNumber/building分離）
+
+## 5. 次のステップ (Phase 8+)
 
 ### 優先タスク
 1. **関係性機能完成**: マスターCSV読み込み、Firestoreインポート
@@ -156,9 +167,8 @@ clasp deploy            # Create new version
 |-------------|------|----------------|--------|
 | [CURRENT_STATUS.md](./CURRENT_STATUS.md) | 進捗・完了機能・変更履歴 | 機能完了/問題解決時 | ★★★ |
 | [PROJECT_MANIFEST.md](./PROJECT_MANIFEST.md) | プロジェクト全体像・鉄則・環境設定 | アーキテクチャ変更時 | ★★★ |
-| [docs/DEVELOPMENT_GUIDE.md](./docs/DEVELOPMENT_GUIDE.md) | **開発ガイド（必読）** - 知見・失敗・ベストプラクティス | 新しい知見が得られたとき | ★★★ |
+| [docs/DEVELOPMENT_GUIDE.md](./docs/DEVELOPMENT_GUIDE.md) | **開発ガイド（必読）** - 知見・失敗・ベストプラクティス・V10/V11教訓 | 新しい知見が得られたとき | ★★★ |
 | [docs/SFA_DESIGN.md](./docs/SFA_DESIGN.md) | SFA設計書 - 商談・契約・レポート設計 | SFA機能追加時 | ★★☆ |
-| [docs/LESSONS_LEARNED_V10_V11.md](./docs/LESSONS_LEARNED_V10_V11.md) | V10/V11からの教訓（参考） | 基本的に更新不要 | ★☆☆ |
 
 ### ドキュメントの使い方
 
@@ -182,6 +192,8 @@ clasp deploy            # Create new version
 | URLFetch exceeded | GAS日次クォータ超過 | キャッシュ・ページネーション実装、17:00 JSTリセット待ち |
 | CSVが文字化け | Shift-JISファイルをUTF-8で読込 | PowerShellでCP932指定して読込 |
 | インポートデータ競合 | 複数箇所で同じデータを生成 | Single Source of Truth: `migration/output/gas-scripts/` のみ使用 |
+| 住所が表示されない | JSON文字列として保存 | オブジェクトとして保存（`DEVELOPMENT_GUIDE.md` セクション8参照） |
+| 住所のtownに番地混入 | パース関数が分離しない | 正規表現で町名・番地・建物を分離 |
 
 ## 9. データ移行（Firestoreインポート）
 
@@ -230,5 +242,5 @@ node migration/scripts/regenerate-migration-data.js
 
 ---
 
-*最終更新: 2025-12-04*
-*最新デプロイ: @164*
+*最終更新: 2025-12-05*
+*最新デプロイ: @207*
