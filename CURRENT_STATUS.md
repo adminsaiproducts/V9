@@ -224,8 +224,11 @@ V10およびV11は開発環境の不安定さ（clasp + OneDrive問題、Script 
 | 2025-12-05 | BUG | 住所のtownフィールドに番地・建物が混入していた問題を発見 | ✅ Fixed |
 | 2025-12-05 | FIX | fix-memorial-customer-addresses.js で住所データ1,766件を修正 | ✅ Done |
 | 2025-12-05 | DEPLOY | Version 207 - 顧客ソート順修正 | ✅ Done |
+| 2025-12-06 | BUG | 電話番号パースの正規表現バグ発見（最後の1桁が切れる） | ✅ Fixed |
+| 2025-12-06 | FIX | clean-data.ts の電話番号正規表現を修正 | ✅ Done |
+| 2025-12-06 | FIX | fix-memorial-customer-phones.js で1,055件の電話番号を修正 | ✅ Done |
 
 ---
 
-*最終更新: 2025-12-05*
+*最終更新: 2025-12-06*
 *最新デプロイ: @207*

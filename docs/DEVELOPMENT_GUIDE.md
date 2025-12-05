@@ -382,9 +382,47 @@ git commit -m "feat: Add api_xxx function
 - [ ] Gitコミット・プッシュしたか
 - [ ] 最新デプロイバージョンを記録したか
 
-## 8. 住所データの正しい構造（重要）
+## 8. データクリーニング時の注意点（重要）
 
-### 8.1 発生した問題と症状
+### 8.1 電話番号パースの正規表現バグ（2025-12-06修正）
+
+**問題:**
+`clean-data.ts` の電話番号クリーニング関数で、正規表現のバグにより電話番号の最後の1桁が切り落とされていた。
+
+**症状:**
+```
+元データ: 045-713-2708
+修正前:   045-713-270  ← 最後の「8」が欠落
+```
+
+**原因:**
+```javascript
+// ❌ バグのある正規表現
+const phoneWithText = original.match(/^([\d\-\(\)\s]+)(.+)$/);
+// この正規表現は「電話番号の最後の1桁」を(.+)にマッチさせてしまう
+// 045-713-2708 → グループ1: "045-713-270", グループ2: "8"
+```
+
+**修正後:**
+```javascript
+// ✅ 正しい正規表現
+const phoneWithText = original.match(/^([\d\-\(\)\s]+)([^\d\-\(\)\s].*)$/);
+// グループ2は「数字・ハイフン以外で始まる」場合のみマッチ
+// 045-713-2708 → マッチしない（全体が電話番号として保持）
+// 045-123-4567 自宅 → グループ1: "045-123-4567 ", グループ2: "自宅"
+```
+
+**影響範囲:**
+- 1,055件の典礼責任者顧客（M番号）の電話番号が影響
+- `scripts/fix-memorial-customer-phones.js` で修正済み
+
+**再発防止:**
+- 正規表現の `(.+)$` は「最低1文字をマッチ」するため、末尾の切り落としに注意
+- 電話番号の後にテキストがある場合のみマッチさせる場合は、文字種を指定する
+
+## 9. 住所データの正しい構造（重要）
+
+### 9.1 発生した問題と症状
 
 2025-12-05に典礼責任者顧客（M番号）の住所データで2つの問題が発生：
 
@@ -414,14 +452,14 @@ address: {
 }
 ```
 
-### 8.2 原因
+### 9.2 原因
 
 住所パース関数が番地部分をtownに含めてしまっていた。
 住所文字列「南区中里3-3-11　弘明寺パークハイツ107」から：
 - 正しくは: 町名「南区中里」 + 番地「3-3-11」 + 建物「弘明寺パークハイツ107」に分離
 - 誤り: 全体を町名として扱った
 
-### 8.3 正しい住所パース方法
+### 9.3 正しい住所パース方法
 
 ```javascript
 function parseTownStreetBuilding(str) {
@@ -459,7 +497,7 @@ function parseTownStreetBuilding(str) {
 }
 ```
 
-### 8.4 Firestoreに保存する際の注意点
+### 9.4 Firestoreに保存する際の注意点
 
 ```javascript
 // ❌ JSON.stringify を使わない
@@ -480,14 +518,14 @@ await db.collection('Customers').doc(id).update({
 });
 ```
 
-### 8.5 住所データ修正スクリプト
+### 9.5 住所データ修正スクリプト
 
 問題が発生した場合の修正スクリプト: `scripts/fix-memorial-customer-addresses.js`
 
 - dry-run モード: `node scripts/fix-memorial-customer-addresses.js --dry-run`
 - 本番実行: `node scripts/fix-memorial-customer-addresses.js`
 
-### 8.6 再発防止チェックリスト
+### 9.6 再発防止チェックリスト
 
 新しいデータ移行・顧客作成スクリプトを作成する際：
 
@@ -496,12 +534,12 @@ await db.collection('Customers').doc(id).update({
 - [ ] dry-runで数件のデータを確認してから本番実行しているか
 - [ ] 保存後にFirestoreコンソールで構造を確認したか
 
-## 9. V10/V11からの教訓（アーカイブ統合）
+## 10. V10/V11からの教訓（アーカイブ統合）
 
 V10およびV11は開発環境の不安定さにより廃止され、V9が唯一の開発環境となりました。
 以下は両プロジェクトから得られた知見です。
 
-### 9.1 GAS :// パターン問題と Base64 エンコーディング
+### 10.1 GAS :// パターン問題と Base64 エンコーディング
 
 **問題:**
 GAS の `HtmlService` は JavaScript コード内の `://` パターン（例: `https://`, `http://`）を JavaScript のコメントとして誤認識し、それ以降のコードを削除してしまう。
@@ -533,7 +571,7 @@ const jsTemplate = `<script>
 - JavaScriptに `://` パターンが含まれる場合のみ必要
 - 現在のV9ビルドで問題が発生していなければ適用不要
 
-### 9.2 非デフォルトFirestoreデータベースID対応
+### 10.2 非デフォルトFirestoreデータベースID対応
 
 **問題:**
 `FirestoreApp` ライブラリは `(default)` データベースしかサポートしておらず、`crm-database-v9` のような名前付きデータベースには接続できない。
@@ -550,7 +588,7 @@ const url = `https://firestore.googleapis.com/v1/projects/${this.projectId}/data
 - `FirestoreApp` ライブラリは使用しない
 - Script Properties で `FIRESTORE_DATABASE_ID` を正しく設定
 
-### 9.3 双方向住所検索API
+### 10.3 双方向住所検索API
 
 **郵便番号 → 住所（zipcloud API）:**
 ```typescript
@@ -567,7 +605,7 @@ getAddressByZipCode(zipCode: string) {
 - zipcloudは郵便番号→住所の**一方向のみ**
 - 住所→郵便番号の逆引きにはHeartRails Geo APIを使用
 
-### 9.4 clasp と OneDrive の相性問題
+### 10.4 clasp と OneDrive の相性問題
 
 **問題:**
 OneDrive 上での開発では、`.clasp.json` が同期中に破損したり、Script ID が無効になることがある。
@@ -582,7 +620,7 @@ OneDrive 上での開発では、`.clasp.json` が同期中に破損したり、
 {"scriptId": "1m6iWE31As4iAwAcRTVVK51zCucN8V0qxPYw1WtmPD0uLzGjIK2qG9FcQ", "rootDir": "dist"}
 ```
 
-### 9.5 GAS サイズ制限と 3-File Pattern
+### 10.5 GAS サイズ制限と 3-File Pattern
 
 **制限:**
 GAS `HtmlService` には HTML サイズ制限（推定 < 500KB）が存在。
@@ -596,7 +634,7 @@ dist/
 └── bundle.js           # Backend GAS code
 ```
 
-### 9.6 V10/V11 廃止の経緯
+### 10.6 V10/V11 廃止の経緯
 
 **V10:**
 - Material UI + React Router を追加

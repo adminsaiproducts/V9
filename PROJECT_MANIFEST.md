@@ -192,8 +192,9 @@ clasp deploy            # Create new version
 | URLFetch exceeded | GAS日次クォータ超過 | キャッシュ・ページネーション実装、17:00 JSTリセット待ち |
 | CSVが文字化け | Shift-JISファイルをUTF-8で読込 | PowerShellでCP932指定して読込 |
 | インポートデータ競合 | 複数箇所で同じデータを生成 | Single Source of Truth: `migration/output/gas-scripts/` のみ使用 |
-| 住所が表示されない | JSON文字列として保存 | オブジェクトとして保存（`DEVELOPMENT_GUIDE.md` セクション8参照） |
+| 住所が表示されない | JSON文字列として保存 | オブジェクトとして保存（`DEVELOPMENT_GUIDE.md` セクション9参照） |
 | 住所のtownに番地混入 | パース関数が分離しない | 正規表現で町名・番地・建物を分離 |
+| 電話番号の最後の桁が欠落 | 正規表現 `(.+)$` が最後の1文字をマッチ | `([^\d\-].*)$` で文字種を指定（セクション8.1参照） |
 
 ## 9. データ移行（Firestoreインポート）
 
