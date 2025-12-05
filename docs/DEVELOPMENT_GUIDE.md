@@ -325,6 +325,10 @@ V9/
    - スキーマは `src/types/firestore.ts` と一致させる
    - 複数の場所で同じデータを生成しない（競合の原因）
 
+8. **住所データを保存する場合（重要）**
+   - 住所はJSON文字列ではなく**オブジェクト**として保存する
+   - 詳細は「8. 住所データの正しい構造」セクションを参照
+
 ## 7. ドキュメント運用ルール
 
 ### 7.1 知見の記録フロー
@@ -378,7 +382,121 @@ git commit -m "feat: Add api_xxx function
 - [ ] Gitコミット・プッシュしたか
 - [ ] 最新デプロイバージョンを記録したか
 
+## 8. 住所データの正しい構造（重要）
+
+### 8.1 発生した問題と症状
+
+2025-12-05に典礼責任者顧客（M番号）の住所データで2つの問題が発生：
+
+**問題1: JSON文字列として保存**
+```javascript
+// ❌ 誤: 文字列として保存
+address: '{"zipCode":"232-0063","prefecture":"神奈川県",...}'
+
+// ✅ 正: オブジェクトとして保存
+address: { zipCode: "232-0063", prefecture: "神奈川県", ... }
+```
+
+**問題2: townフィールドに番地・建物が混入**
+```javascript
+// ❌ 誤: townに全部入っている
+address: {
+  town: "南区中里3-3-11　弘明寺パークハイツ107",
+  streetNumber: "",
+  building: ""
+}
+
+// ✅ 正: 正しく分離
+address: {
+  town: "南区中里",
+  streetNumber: "3-3-11",
+  building: "弘明寺パークハイツ107"
+}
+```
+
+### 8.2 原因
+
+住所パース関数が番地部分をtownに含めてしまっていた。
+住所文字列「南区中里3-3-11　弘明寺パークハイツ107」から：
+- 正しくは: 町名「南区中里」 + 番地「3-3-11」 + 建物「弘明寺パークハイツ107」に分離
+- 誤り: 全体を町名として扱った
+
+### 8.3 正しい住所パース方法
+
+```javascript
+function parseTownStreetBuilding(str) {
+  if (!str) return { town: '', streetNumber: '', building: '' };
+
+  // 全角スペースを半角に変換、ハイフン類を統一
+  str = str.replace(/　/g, ' ').replace(/[−ー]/g, '-').trim();
+
+  // パターン1: 「丁目」の後に番地が続く
+  // 例: "下瀬谷3丁目16-6 オークレスト瀬谷302"
+  const chomePat = /^(.+?[丁目])(\d+[-\d]*)(.*)$/;
+  let match = str.match(chomePat);
+  if (match) {
+    return {
+      town: match[1].trim(),
+      streetNumber: match[2].replace(/-+$/, '').trim(),
+      building: match[3].trim()
+    };
+  }
+
+  // パターン2: 町名の後に数字（番地）が続く
+  // 例: "南区中里3-3-11　弘明寺パークハイツ107"
+  const townNumPat = /^([^\d]+?)(\d+[-\d]*)(.*)$/;
+  match = str.match(townNumPat);
+  if (match) {
+    return {
+      town: match[1].trim(),
+      streetNumber: match[2].replace(/-+$/, '').trim(),
+      building: match[3].trim().replace(/^\s+/, '')
+    };
+  }
+
+  // マッチしない場合はそのままtownに
+  return { town: str, streetNumber: '', building: '' };
+}
+```
+
+### 8.4 Firestoreに保存する際の注意点
+
+```javascript
+// ❌ JSON.stringify を使わない
+await db.collection('Customers').doc(id).update({
+  address: JSON.stringify(addressObj)  // NG!
+});
+
+// ✅ オブジェクトをそのまま保存
+await db.collection('Customers').doc(id).update({
+  address: {
+    zipCode: '232-0063',
+    prefecture: '神奈川県',
+    city: '横浜市',
+    town: '南区中里',
+    streetNumber: '3-3-11',
+    building: '弘明寺パークハイツ107'
+  }
+});
+```
+
+### 8.5 住所データ修正スクリプト
+
+問題が発生した場合の修正スクリプト: `scripts/fix-memorial-customer-addresses.js`
+
+- dry-run モード: `node scripts/fix-memorial-customer-addresses.js --dry-run`
+- 本番実行: `node scripts/fix-memorial-customer-addresses.js`
+
+### 8.6 再発防止チェックリスト
+
+新しいデータ移行・顧客作成スクリプトを作成する際：
+
+- [ ] 住所データはオブジェクトとして保存しているか（JSON文字列ではない）
+- [ ] 住所パース関数は町名・番地・建物を正しく分離しているか
+- [ ] dry-runで数件のデータを確認してから本番実行しているか
+- [ ] 保存後にFirestoreコンソールで構造を確認したか
+
 ---
 
-*最終更新: 2025-12-04*
+*最終更新: 2025-12-05*
 *作成者: Claude Code*
