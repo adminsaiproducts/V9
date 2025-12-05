@@ -97,7 +97,7 @@ dist/
     - 解決策: PowerShellで `[System.Text.Encoding]::GetEncoding(932)` 使用
     - 含まれるKANコード: KAN1001-KAN9999（約50種類の関係性タイプ）
 
-### Phase 6: マスタデータ統合 & Firestoreインポート準備 🔄 (2025-12-04 進行中)
+### Phase 6: マスタデータ統合 & Firestoreインポート ✅ (2025-12-05 完了)
 30. **インポートデータ重複問題の解消:**
     - 問題: `data/import/customers.json` と `migration/output/gas-scripts/firestore-customers.json` が競合
     - 原因: 2つの異なるスキーマで同じデータを生成していた
@@ -114,25 +114,28 @@ dist/
 33. **不要ファイルの整理:**
     - `import-customers.gs` 削除（データ埋め込み式は不適切、JSONファイル方式を採用）
     - `migration-master.gs` と `import-relationships.gs` は保持
+34. **Firestoreインポート完了:** (2025-12-05)
+    - `migration-master.gs` をbatchWrite API対応に最適化（500件/API呼び出し）
+    - recordIdフィールド対応（Customers用）
+    - 全5コレクションのインポート成功確認
 
-## 次のステップ (Phase 7: Firestoreインポート実行)
+### インポート完了データ（Firestore: crm-database-v9）
+| コレクション | 件数 | ステータス |
+|-------------|------|-----------|
+| Customers | 10,852件 | ✅ 完了 |
+| Temples | 63件 | ✅ 完了 |
+| Staff | 57件 | ✅ 完了 |
+| Products | 66件 | ✅ 完了 |
+| Deals | 3,651件 | ✅ 完了 |
+
+## 次のステップ (Phase 7: CRUD & 検索機能)
 
 ### 優先タスク
-1. [ ] **Firestoreインポート実行:** Google DriveにJSONをアップロード → GAS経由でインポート
+1. [x] ~~**Firestoreインポート実行**~~ ✅ 完了
 2. [ ] **関係性機能完成:** マスターCSV読み込み、Firestoreインポート
 3. [ ] **CRUD Operations - Create:** 顧客新規作成機能
 4. [ ] **CRUD Operations - Delete:** 顧客削除機能（論理削除）
 5. [ ] **Search Functionality:** 顧客検索機能の実装（名前、住所、電話番号）
-
-### インポート対象ファイル（migration/output/gas-scripts/）
-| ファイル | 件数 | コレクション |
-|---------|------|-------------|
-| `firestore-customers.json` | 10,852件 | Customers |
-| `firestore-temples.json` | 63件 | Temples |
-| `firestore-staff.json` | 57件 | Staff |
-| `firestore-products.json` | 66件 | Products |
-| `firestore-deals.json` | 3,651件 | Deals |
-| `deals-batches/` | 37バッチ | Deals（分割） |
 
 ### 将来的な拡張
 - **Deals Integration:** 顧客に紐づく案件表示
@@ -184,10 +187,12 @@ V10およびV11は開発環境の不安定さ（clasp + OneDrive問題、Script 
 | 2025-12-04 | FIX | data/import/customers.json と migration版の競合解消 | ✅ Done |
 | 2025-12-04 | SCHEMA | Staff, Product インターフェースを firestore.ts に追加 | ✅ Done |
 | 2025-12-04 | SCRIPT | regenerate-migration-data.js 作成（正式スキーマでデータ再生成） | ✅ Done |
+| 2025-12-05 | MIGRATION | Firestoreインポート完了（14,689件: Customers/Temples/Staff/Products/Deals） | ✅ Done |
+| 2025-12-05 | OPTIMIZE | migration-master.gs batchWrite API最適化（500件/呼び出し） | ✅ Done |
 | 2025-12-04 | DATA | firestore-temples/staff/products/deals.json 生成完了 | ✅ Done |
 | 2025-12-04 | CLEANUP | import-customers.gs 削除（JSONファイル方式に統一） | ✅ Done |
 
 ---
 
-*最終更新: 2025-12-04*
-*最新デプロイ: @164*
+*最終更新: 2025-12-05*
+*最新デプロイ: @192*

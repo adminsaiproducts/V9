@@ -17,11 +17,11 @@
 // ============================================
 // Google Drive上のJSONファイルID（アップロード後に設定）
 // ============================================
-const CUSTOMERS_FILE_ID = 'YOUR_CUSTOMERS_FILE_ID_HERE';
-const TEMPLES_FILE_ID = 'YOUR_TEMPLES_FILE_ID_HERE';
-const STAFF_FILE_ID = 'YOUR_STAFF_FILE_ID_HERE';
-const PRODUCTS_FILE_ID = 'YOUR_PRODUCTS_FILE_ID_HERE';
-const DEALS_FILE_ID = 'YOUR_DEALS_FILE_ID_HERE';
+const CUSTOMERS_FILE_ID = '1qgVhqjz-i7dBRMikF5FiaS2i4_jY8WP_';
+const TEMPLES_FILE_ID = '1ryam0pH5ao_CZ_Pwp5uujnc2b9pTnUCd';
+const STAFF_FILE_ID = '167ynFBtbyyk1vgR93rdsVHx3PmeMNjtX';
+const PRODUCTS_FILE_ID = '1AC5muq6Vp0b_u-BerXC_sHo1mh2nOECB';
+const DEALS_FILE_ID = '1-ajoWStrJHdxxfG7Vx-18KcbF3zatTjp';
 
 // Firestore設定（Script Propertiesから取得）
 function getFirestoreConfig() {
@@ -149,13 +149,19 @@ function batchWriteDocuments(collection, documents) {
     const batch = documents.slice(i, i + BATCH_SIZE);
 
     const writes = batch.map(function(doc) {
-      const docPath = 'projects/' + config.projectId + '/databases/' + config.databaseId +
-                      '/documents/' + collection + '/' + doc.id;
+      // ドキュメントIDを取得 - 'id'または'recordId'フィールドをサポート
+      const docId = doc.id || doc.recordId;
+      if (!docId) {
+        throw new Error('Document has no id or recordId field: ' + JSON.stringify(doc).substring(0, 200));
+      }
 
-      // idフィールドを除いたデータを作成
+      const docPath = 'projects/' + config.projectId + '/databases/' + config.databaseId +
+                      '/documents/' + collection + '/' + docId;
+
+      // id/recordIdフィールドを除いたデータを作成
       const data = {};
       for (const key in doc) {
-        if (key !== 'id') {
+        if (key !== 'id' && key !== 'recordId') {
           data[key] = doc[key];
         }
       }
