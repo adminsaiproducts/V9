@@ -19,11 +19,22 @@ function doGet(e?: GoogleAppsScript.Events.DoGet) {
     const id = params.id;
     const q = params.q;  // 検索クエリパラメータ
 
+    // Get the deployment URL for URL sharing
+    // ScriptApp.getService().getUrl() returns the exec URL like:
+    // https://script.google.com/macros/s/AKfycb.../exec
+    let deploymentUrl = '';
+    try {
+      deploymentUrl = ScriptApp.getService().getUrl();
+    } catch (urlError) {
+      Logger.log('Could not get deployment URL: ' + urlError);
+    }
+
     // Create initial state object for deep-linking
     const initialState = {
       view: view || null,
       id: id || null,
       q: q || null,  // 検索クエリを追加
+      deploymentUrl: deploymentUrl,  // デプロイURLを追加（共有用）
       timestamp: new Date().toISOString()
     };
 
@@ -397,6 +408,40 @@ function api_getCustomerById(id: string) {
     });
   } catch (error: any) {
     Logger.log('Error fetching customer: ' + error.message);
+    return JSON.stringify({
+      status: 'error',
+      message: error.message,
+      data: null
+    });
+  }
+}
+
+/**
+ * Get single customer by trackingNo (追客NO) for URL-based routing
+ * URLに /customers/M0024 のような形式で使用
+ */
+function api_getCustomerByTrackingNo(trackingNo: string) {
+  try {
+    const customerService = new CustomerService();
+    const customer = customerService.getCustomerByTrackingNo(trackingNo);
+
+    if (!customer) {
+      return JSON.stringify({
+        status: 'error',
+        message: `Customer not found with trackingNo: ${trackingNo}`,
+        data: null
+      });
+    }
+
+    // Transform cleaned data structure to flat format for frontend
+    const transformedCustomer = transformCustomerForDisplay(customer);
+
+    return JSON.stringify({
+      status: 'success',
+      data: transformedCustomer
+    });
+  } catch (error: any) {
+    Logger.log('Error fetching customer by trackingNo: ' + error.message);
     return JSON.stringify({
       status: 'error',
       message: error.message,
@@ -1234,6 +1279,7 @@ function batchImport() {
 (globalThis as any).api_getCustomers = api_getCustomers;
 (globalThis as any).api_getCustomersPaginated = api_getCustomersPaginated;
 (globalThis as any).api_getCustomerById = api_getCustomerById;
+(globalThis as any).api_getCustomerByTrackingNo = api_getCustomerByTrackingNo;
 (globalThis as any).api_updateCustomer = api_updateCustomer;
 (globalThis as any).api_debugFirestore = api_debugFirestore;
 (globalThis as any).api_clearCache = api_clearCache;

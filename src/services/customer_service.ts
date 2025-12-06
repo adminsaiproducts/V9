@@ -50,6 +50,19 @@ export class CustomerService {
   }
 
   /**
+   * Get customer by trackingNo (追客NO)
+   * trackingNoは一意の識別子として使用される（例: M0024, 1234など）
+   */
+  getCustomerByTrackingNo(trackingNo: string): Customer | null {
+    const results = this.firestore.queryDocuments<Customer>(this.collection, {
+      where: [{ field: 'trackingNo', op: '==', value: trackingNo }]
+    });
+
+    if (results.length === 0) return null;
+    return results[0];
+  }
+
+  /**
    * Update customer
    */
   updateCustomer(id: string, updates: Partial<Customer>): Customer {
@@ -85,6 +98,15 @@ export class CustomerService {
     // Fetch all customers (increased limit from 50 to 10000)
     // For full-text search, consider implementing Firestore queries or Algolia integration
     return this.firestore.listDocuments<Customer>(this.collection, 10000);
+  }
+
+  /**
+   * Get ALL customers from Firestore (no limit)
+   * Uses pagination internally to fetch all documents
+   * @returns All customers in the collection
+   */
+  getAllCustomers(): Customer[] {
+    return this.firestore.listAllDocuments<Customer>(this.collection);
   }
 
   /**

@@ -1139,6 +1139,195 @@ const totalCount = allCustomers ? allCustomers.length : (backgroundLoading ? nul
 - [ ] null/undefined と 0 を区別しているか
 - [ ] ユーザーに適切なフィードバックを提供しているか
 
+## 18. ディープリンク・URL共有機能の実装（2025-12-06）
+
+### 18.1 GASの技術的制限
+
+**重要な制限事項:**
+GASウェブアプリはiframe内で動作するため、**ブラウザのアドレスバーURLをJavaScriptから動的に変更することができません**。
+
+```
+[ブラウザのアドレスバー] → script.google.com/macros/s/.../exec
+        ↓
+[Googleのサンドボックスiframe]
+        ↓
+[Reactアプリ] → iframe内で動作、親URLを変更不可
+```
+
+**結果:**
+- ユーザーがアプリ内でナビゲーション（例: 顧客一覧 → 顧客詳細）しても、ブラウザのアドレスバーURLは変わらない
+- 常に同じベースURL（`https://script.google.com/macros/s/.../exec`）が表示される
+
+### 18.2 解決策: クエリパラメータ方式のディープリンク
+
+**仕組み:**
+1. サーバー側（GAS）でクエリパラメータを読み取り、`CRM_INITIAL_STATE`としてフロントエンドに渡す
+2. フロントエンド（React）が起動時に初期ルートを決定
+3. URLコピーボタンで正しいディープリンクURLをクリップボードにコピー
+
+**ディープリンク形式:**
+```
+ダッシュボード: ?view=dashboard
+顧客一覧:       ?view=customers
+顧客一覧+検索:  ?view=customers&q=検索語
+顧客詳細:       ?view=customer_detail&id=M0024
+```
+
+**GAS側の実装（main.ts）:**
+```typescript
+function doGet(e: GoogleAppsScript.Events.DoGet) {
+  const params = e?.parameter || {};
+  const initialState = {
+    view: params.view || null,
+    id: params.id || null,
+    q: params.q || null,
+    deploymentUrl: ScriptApp.getService().getUrl(),
+    timestamp: new Date().toISOString()
+  };
+
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle('CRM V9')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    // CRM_INITIAL_STATEをグローバルに注入
+    .append(`<script>window.CRM_INITIAL_STATE = ${JSON.stringify(initialState)};</script>`);
+}
+```
+
+**フロントエンド側の実装（App.tsx）:**
+```typescript
+function getInitialRoute(): string {
+  const initialState = window.CRM_INITIAL_STATE;
+  if (!initialState || !initialState.view) return '/dashboard';
+
+  if (initialState.view === 'customer_detail' && initialState.id) {
+    return `/customers/${initialState.id}`;
+  } else if (initialState.view === 'customers') {
+    const q = initialState.q || '';
+    return q ? `/customers?q=${encodeURIComponent(q)}` : '/customers';
+  }
+  return '/dashboard';
+}
+
+export default function App() {
+  const initialRoute = useMemo(() => {
+    const route = getInitialRoute();
+    // deploymentUrl以外をクリア（二重ナビゲーション防止）
+    const deploymentUrl = window.CRM_INITIAL_STATE?.deploymentUrl;
+    if (deploymentUrl) {
+      window.CRM_INITIAL_STATE = { deploymentUrl };
+    } else {
+      delete window.CRM_INITIAL_STATE;
+    }
+    return route;
+  }, []);
+
+  return (
+    <HashRouter>
+      <Routes>
+        <Route index element={<Navigate to={initialRoute} replace />} />
+        {/* ... */}
+      </Routes>
+    </HashRouter>
+  );
+}
+```
+
+### 18.3 URLコピー機能の実装
+
+**BreadcrumbContext.tsx:**
+```typescript
+// deploymentUrlをコンテキストで管理
+const [deploymentUrl, setDeploymentUrl] = useState<string>('');
+
+useEffect(() => {
+  const initialState = window.CRM_INITIAL_STATE;
+  if (initialState?.deploymentUrl) {
+    setDeploymentUrl(initialState.deploymentUrl);
+  }
+}, []);
+```
+
+**Breadcrumbs.tsx:**
+```typescript
+const getShareableUrl = () => {
+  if (!deploymentUrl) return window.location.href;
+
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const params = new URLSearchParams();
+
+  if (pathSegments[0] === 'customers') {
+    if (pathSegments.length === 1) {
+      params.set('view', 'customers');
+    } else {
+      params.set('view', 'customer_detail');
+      params.set('id', pathSegments[1]);
+    }
+  } else {
+    params.set('view', 'dashboard');
+  }
+
+  return `${deploymentUrl}?${params.toString()}`;
+};
+```
+
+### 18.4 発生した問題と解決策
+
+**問題1: api_getCustomerByTrackingNo not found**
+- 原因: `add-bridge.js`にブリッジ関数が追加されていなかった
+- 解決: `scripts/add-bridge.js`に以下を追加
+```javascript
+function api_getCustomerByTrackingNo(trackingNo) {
+  return globalThis.api_getCustomerByTrackingNo(trackingNo);
+}
+```
+
+**問題2: 古いデプロイメントバージョンを使用していた**
+- 原因: `clasp push`後に`clasp deploy`を実行せず、古いバージョンが使われ続けた
+- 解決: 毎回 `clasp deploy -d "説明"` で新バージョンを作成
+
+**問題3: deploymentUrlがBreadcrumbContextに渡らない**
+- 原因: App.tsxの初期化でCRM_INITIAL_STATEを削除していた
+- 解決: deploymentUrlのみを保持するよう修正
+
+### 18.5 GAS環境の制限まとめ
+
+| 機能 | GAS | 通常Webアプリ |
+|------|-----|--------------|
+| アドレスバーURL変更 | ✗ 不可 | ✓ 可能 |
+| ブックマーク | △ URLコピーで対応 | ✓ 自動 |
+| 戻る/進む | △ アプリ内のみ | ✓ 完全対応 |
+| ディープリンク | △ クエリパラメータ方式 | ✓ パス方式 |
+
+### 18.6 将来の代替案: Firebase Hosting
+
+GASの制限を完全に解消したい場合は、以下の移行を検討：
+
+```
+[現在] GAS + iframe
+  ↓
+[将来] Firebase Hosting + Cloud Functions
+```
+
+**Firebase移行のメリット:**
+- URLが完全に制御可能（`/customers/M0024`形式）
+- 既存Firestoreデータをそのまま使用可能
+- 高速CDN配信
+- PWA対応可能
+
+**移行工数:** 1-2週間程度（API層の書き換えと認証実装が主な作業）
+
+### 18.7 再発防止チェックリスト
+
+新しいページ/ルートを追加する際：
+
+- [ ] `main.ts`のdoGetでクエリパラメータを受け取るよう対応
+- [ ] `App.tsx`のgetInitialRoute()に新しいルートを追加
+- [ ] `Breadcrumbs.tsx`のgetShareableUrl()に新しいURL生成ロジックを追加
+- [ ] 必要な新API関数があれば`add-bridge.js`に追加
+- [ ] `clasp deploy`で新バージョンをデプロイ
+- [ ] check-crm-app.jsのDEPLOY_URLを更新してテスト
+
 ---
 
 *最終更新: 2025-12-06*

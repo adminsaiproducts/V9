@@ -59,6 +59,7 @@ function api_searchCustomers(query) { return globalThis.api_searchCustomers(quer
 function api_createCustomer(data) { return globalThis.api_createCustomer(data); }
 function api_deleteCustomer(id) { return globalThis.api_deleteCustomer(id); }
 function api_getAllCustomers() { return globalThis.api_getAllCustomers(); }
+function api_getCustomerByTrackingNo(trackingNo) { return globalThis.api_getCustomerByTrackingNo(trackingNo); }
 
 /* SFA (Sales Force Automation) - 商談管理 API */
 function api_getDeals(options) { return globalThis.api_getDeals(options); }

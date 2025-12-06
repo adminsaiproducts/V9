@@ -163,7 +163,17 @@ clasp deploy            # Create new version
 - [x] **共有ボタン**: 現在のURLをクリップボードにコピー
 - [x] **DeepLinkHandler拡張**: サーバーサイドからの検索クエリ対応
 
-## 5. 次のステップ (Phase 10+)
+### Phase 10: ディープリンク最適化 ✅ (2025-12-06 完了)
+- [x] **クエリパラメータ方式ディープリンク**: GAS制限に対応した実装
+  - `?view=customer_detail&id=M0024` 形式で顧客詳細に直接アクセス
+  - `?view=customers&q=検索語` 形式で検索結果を共有
+  - `CRM_INITIAL_STATE`を通じてフロントエンドにパラメータ伝達
+- [x] **deploymentUrl管理**: BreadcrumbContextで一元管理
+- [x] **api_getCustomerByTrackingNo**: trackingNoで顧客取得するAPIを追加
+- [x] **GAS技術的制限の文書化**: ブラウザアドレスバーURL変更不可の制限を明記
+- [x] **Firebase移行計画の策定**: 将来の完全URL制御のための代替案を文書化
+
+## 5. 次のステップ (Phase 11+)
 
 ### 優先タスク
 1. **関係性機能完成**: マスターCSV読み込み、Firestoreインポート
@@ -217,6 +227,9 @@ clasp deploy            # Create new version
 | 電話番号の最後の桁が欠落 | 正規表現 `(.+)$` が最後の1文字をマッチ | `([^\d\-].*)$` で文字種を指定（セクション8.1参照） |
 | エリア別・寺院別グラフが空 | 寺院IDフォーマット不一致（T0001 vs TEMPLE-*） | 同じIDフォーマットを使用するデータソースを確認 |
 | 読み込み中に「全 0 件」表示 | null/undefined と 0 の区別なし | null 時は「読み込み中...」を表示する分岐を追加 |
+| api_xxx not found | add-bridge.jsにブリッジ関数がない | ブリッジ関数を追加後、build → push → deploy |
+| ディープリンクが動かない | 古いデプロイメントバージョン | `clasp deploy`で新バージョン作成、URLを更新 |
+| URLがサンドボックスURL | GASのiframe制限 | URLコピーボタンで正式URLを取得（アドレスバー変更は不可） |
 
 ## 9. データ移行（Firestoreインポート）
 
@@ -263,7 +276,44 @@ node migration/scripts/regenerate-migration-data.js
 
 このスクリプトは `data/import/` のデータを `src/types/firestore.ts` のスキーマに合わせて変換し、`migration/output/gas-scripts/` に出力します。
 
+## 10. GAS技術的制限と将来の移行計画
+
+### 現在の制限事項
+
+GASウェブアプリはGoogleのサンドボックスiframe内で動作するため、以下の制限があります：
+
+| 機能 | GAS環境 | 通常Webアプリ |
+|------|---------|--------------|
+| アドレスバーURL変更 | ✗ 不可 | ✓ 可能 |
+| ブックマーク | △ URLコピーで対応 | ✓ 自動 |
+| 戻る/進むボタン | △ アプリ内のみ | ✓ 完全対応 |
+| ディープリンク | △ クエリパラメータ方式 | ✓ パス方式 |
+
+### 将来の移行先候補: Firebase Hosting
+
+GASの制限を完全に解消するための移行計画：
+
+```
+[現在] GAS iframe → URL制限あり
+  ↓
+[将来] Firebase Hosting + Cloud Functions → URL完全制御
+```
+
+**Firebase移行のメリット:**
+- URLが完全に制御可能（`/customers/M0024`形式がアドレスバーに表示）
+- 既存Firestoreデータをそのまま使用可能（移行不要）
+- 高速CDN配信
+- PWA対応可能（オフライン機能）
+- Google認証との親和性
+
+**移行工数:** 1-2週間程度
+- API層の書き換え（GAS → Cloud Functions）
+- 認証実装（Firebase Auth）
+- デプロイ設定
+
+詳細は `docs/DEVELOPMENT_GUIDE.md` セクション18を参照。
+
 ---
 
 *最終更新: 2025-12-06*
-*最新デプロイ: @239*
+*最新デプロイ: v251*

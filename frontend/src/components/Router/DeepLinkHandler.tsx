@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
  *
  * Supported parameters:
  * - view: 'customer_detail' | 'customers' | 'dashboard'
- * - id: Customer ID (for customer_detail view)
+ * - id: 追客NO（trackingNo）for customer_detail view (例: M0024, 1234)
  * - q: Search query (for customers view)
  */
 export const DeepLinkHandler: React.FC = () => {
@@ -26,6 +26,8 @@ export const DeepLinkHandler: React.FC = () => {
 
     // Route based on view parameter
     if (initialState.view === 'customer_detail' && initialState.id) {
+      // idはtrackingNo（追客NO）として扱う
+      // 例: /customers/M0024
       console.log(`[DeepLinkHandler] Navigating to /customers/${initialState.id}`);
       navigate(`/customers/${initialState.id}`, { replace: true });
     } else if (initialState.view === 'customers') {
@@ -39,8 +41,15 @@ export const DeepLinkHandler: React.FC = () => {
       navigate('/dashboard', { replace: true });
     }
 
-    // Clear initial state after consumption
+    // Clear initial state after consumption (but keep deploymentUrl for URL sharing)
+    // deploymentUrlは他のコンポーネント（Breadcrumbs等）で使用するため保持
+    const deploymentUrl = initialState.deploymentUrl;
     delete (window as any).CRM_INITIAL_STATE;
+
+    // deploymentUrlだけを保持した新しいオブジェクトを設定
+    if (deploymentUrl) {
+      (window as any).CRM_INITIAL_STATE = { deploymentUrl };
+    }
   }, [navigate]);
 
   return null; // This component doesn't render anything

@@ -177,16 +177,54 @@ dist/
     - **新規ライブラリ**: `chart.js`, `react-chartjs-2`
     - **集計結果（自動生成）**: 総申込額¥1,450,509,375、入金率100%
 
-## 次のステップ (Phase 9: SFA & 商談機能)
+### Phase 9: ディープリンク最適化 ✅ (2025-12-06 完了)
+40. **クエリパラメータ方式ディープリンク:**
+    - `?view=customers&search=xxx` - 顧客一覧（検索付き）
+    - `?view=customer_detail&id=M0024` - 顧客詳細
+    - GAS制限によりハッシュルーティング不可 → クエリパラメータで対応
 
-### 優先タスク
+41. **api_getCustomerByTrackingNo API追加:**
+    - trackingNoで顧客を直接取得
+    - `scripts/add-bridge.js` にブリッジ関数追加
+
+42. **GAS技術的制限の文書化:**
+    - **アドレスバーURL変更不可**: GASはiframe内で動作するため、親フレームのURL変更は不可能
+    - **ワークアラウンド**: URLコピーボタンで共有可能なURLを提供
+    - **将来的解決策**: Firebase Hosting + React への移行を推奨
+    - 詳細は `docs/DEVELOPMENT_GUIDE.md` Section 18 を参照
+
+43. **URLコピー機能の実装:**
+    - パンくずリストに「URLをコピー」ボタンを追加
+    - deploymentUrl + クエリパラメータで正しい共有URLを生成
+
+## 次のステップ (Phase 10: Firebase Hosting移行検討)
+
+### GAS制限による移行検討
+GASのiframe制限により以下が実現不可能:
+- ブラウザアドレスバーへの動的URL表示
+- ブックマーク時の自動URL反映
+- SNS共有時のOGP対応
+
+### 推奨移行アーキテクチャ
+1. **Firebase Hosting + React SPA**
+   - 既存Firestoreデータをそのまま利用可能
+   - 完全なURL制御が可能
+   - PWA対応可能
+
+2. **移行ステップ（将来）**
+   - [ ] Firebase Hostingプロジェクトセットアップ
+   - [ ] React SPAのビルド設定変更
+   - [ ] Firestore直接アクセス実装
+   - [ ] 認証移行（Firebase Auth）
+
+### 当面の優先タスク
 1. [x] ~~**Firestoreインポート実行**~~ ✅ 完了
 2. [ ] **関係性機能完成:** マスターCSV読み込み、Firestoreインポート
 3. [ ] **CRUD Operations - Create:** 顧客新規作成機能
 4. [ ] **CRUD Operations - Delete:** 顧客削除機能（論理削除）
-5. [ ] **Search Functionality:** 顧客検索機能の実装（名前、住所、電話番号）
 
 ### 将来的な拡張
+- **Firebase Hosting移行:** 完全なURL制御のため
 - **Deals Integration:** 顧客に紐づく案件表示
 - **Voice-First Entry:** 音声録音 → Vertex AI 解析
 
@@ -267,8 +305,14 @@ V10およびV11は開発環境の不安定さ（clasp + OneDrive問題、Script 
 | 2025-12-06 | FEATURE | 顧客一覧に共有ボタン追加（現在のURLをコピー） | ✅ Done |
 | 2025-12-06 | FEATURE | DeepLinkHandler拡張（検索クエリ対応） | ✅ Done |
 | 2025-12-06 | DEPLOY | Version 239 - URL検索パラメータ & 共有ボタン | ✅ Done |
+| 2025-12-06 | FEATURE | api_getCustomerByTrackingNo API追加（trackingNoで顧客取得） | ✅ Done |
+| 2025-12-06 | FIX | ディープリンクルーティング修正（同期的な初期ルート計算） | ✅ Done |
+| 2025-12-06 | DOCS | GAS技術的制限をDEVELOPMENT_GUIDE.mdに文書化（Section 18） | ✅ Done |
+| 2025-12-06 | DOCS | PROJECT_MANIFEST.md にPhase 10と失敗パターンを追記 | ✅ Done |
+| 2025-12-06 | ISSUE | **GASアドレスバーURL制限**: iframeのため親フレームURL変更不可（仕様） | 📌 Limitation |
+| 2025-12-06 | DEPLOY | Version 251 - ディープリンク最適化完了版 | ✅ Done |
 
 ---
 
 *最終更新: 2025-12-06*
-*最新デプロイ: @239*
+*最新デプロイ: @251*
