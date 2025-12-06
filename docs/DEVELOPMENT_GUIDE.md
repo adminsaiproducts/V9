@@ -799,6 +799,150 @@ const monthlyChartData = {
 | エリア別売上 | 棒グラフ | 神奈川、東京、埼玉、千葉 |
 | 寺院別TOP10 | 横棒グラフ | 売上上位10寺院 |
 
+## 13. 2025-12-06 セッションで発生した問題と解決策
+
+### 13.1 電話番号フィールドの型エラー
+
+**問題:**
+顧客検索時に `(fe.phone || "").replace is not a function` エラーが発生。
+
+**原因:**
+Firestoreから取得した`phone`フィールドが文字列ではなく、オブジェクトや数値の場合があった。
+
+**解決策:**
+```typescript
+// ❌ エラーが発生するコード
+const phone = (c.phone || '').replace(/[-\s]/g, '');
+
+// ✅ 型を確認してから処理
+const phoneRaw = c.phone;
+const phoneStr = typeof phoneRaw === 'string' ? phoneRaw : (phoneRaw ? String(phoneRaw) : '');
+const phone = phoneStr.replace(/[-\s]/g, '');
+```
+
+**教訓:**
+- Firestoreのデータは必ずしも期待する型とは限らない
+- 文字列メソッドを呼ぶ前に `typeof` で型チェックする
+
+### 13.2 GASデプロイメントの更新が反映されない
+
+**問題:**
+`clasp push` 後もダッシュボードが古いまま（新しいUIが表示されない）。
+
+**原因:**
+- `clasp push` はスクリプトを更新するが、デプロイメントは更新しない
+- ユーザーがアクセスしているURLは特定バージョンのデプロイメントを指している
+
+**解決策:**
+```bash
+# 1. プッシュ
+clasp push -f
+
+# 2. 新しいデプロイメントを作成
+clasp deploy -d "説明"
+
+# 3. 新しいデプロイメントIDのURLを使用
+# 例: https://script.google.com/macros/s/AKfycbwDxTF0n.../exec
+```
+
+**教訓:**
+- `clasp push` だけでは本番URLは更新されない
+- 毎回 `clasp deploy` で新しいバージョンを作成する必要がある
+- または既存のデプロイメントを更新: `clasp deploy -i <deployment_id>`
+
+### 13.3 CSVデータが大きすぎてReadツールで読めない
+
+**問題:**
+売上CSVファイル（1,422行）がトークン制限（25,000）を超えてReadツールで読めない。
+
+**原因:**
+変更履歴列に大量のテキストが含まれており、ファイルサイズが膨張。
+
+**解決策:**
+ビルド時にCSVを読み込んでTypeScriptモジュールに変換するスクリプトを作成。
+
+```javascript
+// scripts/generate-sales-data.js
+const csvContent = fs.readFileSync(CSV_PATH, 'utf-8');
+const tsContent = `const salesCSVData = ${JSON.stringify(csvContent)};
+export default salesCSVData;`;
+fs.writeFileSync(OUTPUT_FILE, tsContent);
+```
+
+**教訓:**
+- 大きなデータファイルは直接読まず、ビルドスクリプトで処理
+- `JSON.stringify` でエスケープすれば安全にTypeScriptに埋め込める
+
+### 13.4 デプロイメント削除による既存URL無効化
+
+**問題:**
+`clasp undeploy` で既存デプロイメントを削除したため、ユーザーが使用していたURLが無効になった。
+
+**原因:**
+```bash
+# これを実行してしまった
+clasp undeploy AKfycbz43T-Qgoh3VIvP6dQI8XAwvukF9qoCVtdmhyHRgWXy2eWe1bQ7uAU6FQh6g8-hXM_E
+```
+
+**解決策:**
+新しいデプロイメントURLをユーザーに共有。
+
+**再発防止:**
+```bash
+# ❌ 削除してから新規作成（URLが変わる）
+clasp undeploy <old_id>
+clasp deploy
+
+# ✅ 既存デプロイメントを更新（URLが維持される）
+clasp deploy -i <existing_deployment_id> -d "説明"
+```
+
+**教訓:**
+- 本番で使用中のデプロイメントは削除しない
+- 更新する場合は `-i` オプションで既存IDを指定
+- 削除する前にユーザーに影響がないか確認
+
+### 13.5 検索時のUIフリーズ
+
+**問題:**
+13,673件の顧客を一度にフィルタリングするとUIが固まる。
+
+**原因:**
+JavaScriptはシングルスレッドなので、大量データの同期処理中はUIが更新されない。
+
+**解決策:**
+チャンク分割 + `setTimeout(0)` でUIスレッドに制御を返す。
+
+```typescript
+for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+  const chunk = data.slice(i, i + CHUNK_SIZE);
+  // チャンク処理...
+
+  // UIスレッドに制御を返す
+  if (i + CHUNK_SIZE < data.length) {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+}
+```
+
+**教訓:**
+- 大量データ処理は必ずチャンク分割
+- `setTimeout(0)` で定期的にUIに制御を返す
+- Web Workerも検討（より本格的な場合）
+
+## 14. トラブルシューティングチェックリスト（更新版）
+
+| 症状 | 確認項目 | 解決策 |
+|------|----------|--------|
+| Method not found | `add-bridge.js` にブリッジ関数があるか | ブリッジ関数を追加 |
+| フォーム送信が動かない | Zodスキーマと既存データの整合性 | スキーマに既存値を含める |
+| 更新が反映されない | デプロイメントバージョンが最新か | `clasp deploy` で新バージョン作成 |
+| URLが無効 | デプロイメントが削除されていないか | 新しいURLを共有 |
+| `.replace is not a function` | データ型が期待と異なる | `typeof` で型チェック |
+| UIがフリーズ | 大量データの同期処理 | チャンク分割 + setTimeout |
+| CSVが読めない | ファイルが大きすぎる | ビルドスクリプトで処理 |
+| URLFetch exceeded | GAS日次クォータ超過 | キャッシュ実装、17:00 JSTリセット待ち |
+
 ---
 
 *最終更新: 2025-12-06*
