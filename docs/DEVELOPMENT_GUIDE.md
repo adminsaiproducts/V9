@@ -943,6 +943,202 @@ for (let i = 0; i < data.length; i += CHUNK_SIZE) {
 | CSVが読めない | ファイルが大きすぎる | ビルドスクリプトで処理 |
 | URLFetch exceeded | GAS日次クォータ超過 | キャッシュ実装、17:00 JSTリセット待ち |
 
+## 15. 売上データ自動生成（2025-12-06追加）
+
+### 15.1 概要
+
+売上ダッシュボードのデータは、以前は手動で管理していた CSV（`新：2025売上管理表 - 契約詳細.csv`）から読み込んでいましたが、**商談データ（Firestore）から自動生成**する方式に変更しました。
+
+### 15.2 データフロー
+
+```
+Firestore Deals (3,651件)
+    ↓
+generate-sales-from-deals.js
+    ↓
+frontend/src/data/salesData.ts (自動生成)
+    ↓
+Dashboard.tsx (グラフ表示)
+```
+
+### 15.3 スクリプト
+
+| スクリプト | 役割 | 使用状況 |
+|-----------|------|----------|
+| `scripts/generate-sales-from-deals.js` | 商談データからCSV形式で売上データ生成 | **推奨** |
+| `scripts/generate-sales-data.js` | 手動CSVから売上データ生成 | 非推奨（@deprecated） |
+
+### 15.4 実行方法
+
+```bash
+# 個別実行
+npm run generate:sales
+
+# ビルド時に自動実行（組み込み済み）
+npm run build
+```
+
+### 15.5 商談-顧客の紐付け
+
+商談データ（Deals）は `customerId` フィールドで顧客と紐付けられています。
+
+```javascript
+// Deal構造
+{
+  id: "DEAL-xxx",
+  customerId: "CUST-xxx",    // ← 顧客ID（紐付けキー）
+  templeId: "TEMPLE-xxx",
+  customerName: "山田太郎",
+  planName: "A/区画",
+  amount: 350000,
+  status: "PAID",            // PAID/CONTRACTED が売上対象
+  actualDate: "2025-01-15"   // 契約日
+}
+```
+
+### 15.6 生成されるCSVカラム
+
+| カラム | ソース | 備考 |
+|--------|--------|------|
+| 入力順 | 自動採番 | 1から連番 |
+| 契約日 | Deal.actualDate | YYYY/MM/DD形式 |
+| 契約者 | Deal.customerName | |
+| 寺院名 | Temple.name | Deal.templeIdから参照 |
+| エリア | Temple.area | Deal.templeIdから参照 |
+| 申込実績 | Deal.amount | ¥XX,XXX形式 |
+| 入金日/入金額 | Deal.status | PAID時は契約日に全額入金 |
+| 小分類 | Deal.planName | プラン名 |
+| 大分類 | 自動推定 | planNameから推定（樹木墓/納骨堂/ペット等） |
+| 売上計上月 | Deal.actualDate | YYYY年MM月形式 |
+
+### 15.7 大分類の自動推定ロジック
+
+```javascript
+const categoryMap = {
+  '樹木墓': ['樹木墓', '樹木', 'A/', 'B/', 'C/', 'D/', 'E/'],
+  '納骨堂': ['納骨堂', '堂内', '廟'],
+  'ペット': ['ペット', 'PR/', 'PET'],
+  '墓石': ['墓石', '石碑', '墓誌'],
+  '管理料': ['管理料', '年間管理'],
+  '法要': ['法要', '読経', '供養'],
+  'その他': []
+};
+```
+
+## 16. 寺院IDフォーマット不一致問題（2025-12-06）
+
+### 16.1 問題と症状
+
+**問題:**
+ダッシュボードの「エリア別売上」と「寺院別売上 TOP10」グラフが空になる（データがない）。
+
+**症状:**
+- 月次推移グラフや大分類別グラフは正常に表示
+- エリア別と寺院別のグラフだけが空
+- 生成された `salesData.ts` のファイルサイズが小さい（480KB vs 本来569KB）
+
+### 16.2 原因
+
+`scripts/generate-sales-from-deals.js` が参照していた寺院データと商談データで **IDフォーマットが異なっていた**。
+
+```javascript
+// 商談データ (firestore-deals.json) の templeId
+{ templeId: "TEMPLE-001", ... }  // TEMPLE-* 形式
+
+// 旧・寺院データ (firestore-temples.json) の ID
+{ id: "T0001", ... }  // T0001 形式
+
+// → IDが一致しないため、寺院名・エリアが取得できずスキップされていた
+```
+
+### 16.3 解決策
+
+正しいIDフォーマットを持つ寺院データファイルを参照するよう修正。
+
+```javascript
+// ❌ 間違ったソース（IDフォーマット不一致）
+const TEMPLES_PATH = path.resolve(__dirname, '../migration/output/gas-scripts/firestore-temples.json');
+
+// ✅ 正しいソース（TEMPLE-* 形式のIDを持つ）
+const TEMPLES_PATH = path.resolve(__dirname, '../data/import/temples.json');
+```
+
+### 16.4 教訓：Single Source of Truth と ID フォーマット
+
+**チェックリスト（データソースを参照するとき）:**
+
+1. [ ] 参照するデータファイルのIDフォーマットを確認
+2. [ ] 紐付け先のデータのIDフォーマットと一致しているか確認
+3. [ ] 複数のマスタデータがある場合、どれが正式版か確認
+
+**よくあるIDフォーマットの例:**
+| データ | フォーマット例 | 注意点 |
+|--------|---------------|--------|
+| 顧客 | CUST-000001 | 6桁ゼロ埋め |
+| 寺院 | TEMPLE-001 | 3桁数字 |
+| 寺院（旧） | T0001 | 廃止、使用しない |
+| 商談 | DEAL-xxx | 元システムのID |
+| 典礼責任者 | M0001〜M1766 | M番号 |
+
+**Single Source of Truth 原則（再掲）:**
+- マスタデータは `migration/output/gas-scripts/` を正式版とする
+- ただし、IDフォーマットの互換性を必ず確認すること
+- 異なるIDフォーマットを持つファイルが混在している場合は注意
+
+## 17. 非同期読み込み中の件数表示（2025-12-06）
+
+### 17.1 問題と症状
+
+**問題:**
+顧客一覧画面で、バックグラウンド読み込み中に「全 0 件」と表示される。
+
+**症状:**
+- 画面表示直後に「全 0 件」が一瞬表示
+- その後、正しい件数に更新される
+- ユーザーには「データがない」ように見える
+
+### 17.2 原因
+
+`totalCount` の計算ロジックが、読み込み中の状態を考慮していなかった。
+
+```typescript
+// ❌ 問題のあるコード
+const totalCount = allCustomers ? allCustomers.length : initialTotal;
+// backgroundLoading 中は allCustomers=null、initialTotal=0 となり、結果は 0
+```
+
+### 17.3 解決策
+
+読み込み中は `null` を返し、表示側で「読み込み中...」を出す。
+
+```typescript
+// ✅ 修正後のコード
+const totalCount = allCustomers ? allCustomers.length : (backgroundLoading ? null : initialTotal);
+
+// 表示側
+{totalCount === null
+    ? '読み込み中...'
+    : isSearching
+        ? `検索結果: ${displayData.length.toLocaleString()} 件`
+        : `全 ${totalCount.toLocaleString()} 件`
+}
+```
+
+### 17.4 教訓：三つの状態を区別する
+
+非同期データには **3つの状態** がある：
+
+| 状態 | 値 | 表示 |
+|------|---|------|
+| 読み込み中 | null/undefined | 「読み込み中...」 |
+| 読み込み完了（0件） | 0 | 「0 件」 |
+| 読み込み完了（N件） | N | 「N 件」 |
+
+**チェックリスト（非同期データの表示）:**
+- [ ] 読み込み中の状態を適切に検知しているか
+- [ ] null/undefined と 0 を区別しているか
+- [ ] ユーザーに適切なフィードバックを提供しているか
+
 ---
 
 *最終更新: 2025-12-06*

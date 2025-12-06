@@ -164,8 +164,9 @@ dist/
     - **結果**: 検索が即座に完了、UIフリーズなし
 
 39. **売上管理ダッシュボードの実装:**
-    - **データソース**: `data/sales/新：2025売上管理表 - 契約詳細.csv` (1,422行)
-    - **CSVデータ埋め込み**: `scripts/generate-sales-data.js` でTypeScriptモジュール生成
+    - **データソース**: Firestore商談データ（Deals: 3,651件 → 契約済み3,596件）
+    - **自動生成**: `scripts/generate-sales-from-deals.js` で商談データからCSV形式を自動生成
+    - **ビルド統合**: `npm run build` 実行時に自動で売上データを再生成
     - **データ解析API**: `frontend/src/api/sales.ts`
       - `parseSalesCSV()`: CSV解析
       - `calculateDashboardSummary()`: 各種集計計算
@@ -174,6 +175,7 @@ dist/
       - グラフ（Chart.js）: 月次推移（棒）、大分類別構成比（円）、エリア別売上（棒）、寺院別TOP10（横棒）
       - テーブル: 月次推移詳細、寺院別年間売上、分類別（小分類）
     - **新規ライブラリ**: `chart.js`, `react-chartjs-2`
+    - **集計結果（自動生成）**: 総申込額¥1,450,509,375、入金率100%
 
 ## 次のステップ (Phase 9: SFA & 商談機能)
 
@@ -252,8 +254,17 @@ V10およびV11は開発環境の不安定さ（clasp + OneDrive問題、Script 
 | 2025-12-06 | FEATURE | 売上管理ダッシュボード（CSV解析 + Chart.js グラフ表示） | ✅ Done |
 | 2025-12-06 | SCRIPT | generate-sales-data.js（CSVをTypeScriptモジュールに変換） | ✅ Done |
 | 2025-12-06 | DEPLOY | Version 231 - 売上ダッシュボード + グラフ表示 | ✅ Done |
+| 2025-12-06 | SCRIPT | generate-sales-from-deals.js（商談データから売上CSV自動生成） | ✅ Done |
+| 2025-12-06 | BUILD | npm run build に売上データ自動生成を統合 | ✅ Done |
+| 2025-12-06 | DEPRECATED | generate-sales-data.js を非推奨化（手動CSV方式は廃止） | ✅ Done |
+| 2025-12-06 | BUG | ダッシュボードのエリア別・寺院別グラフが空になる問題を発見 | ✅ Fixed |
+| 2025-12-06 | FIX | generate-sales-from-deals.js の寺院データソース修正（TEMPLE-* IDフォーマット） | ✅ Done |
+| 2025-12-06 | BUG | 顧客一覧で読み込み中に「全 0 件」と表示される問題を発見 | ✅ Fixed |
+| 2025-12-06 | FIX | Customers.tsx の totalCount ロジック修正（読み込み中は「読み込み中...」を表示） | ✅ Done |
+| 2025-12-06 | DEPLOY | Version 236 - ダッシュボードグラフ修正（寺院データソース） | ✅ Done |
+| 2025-12-06 | DEPLOY | Version 238 - 顧客件数表示修正 | ✅ Done |
 
 ---
 
 *最終更新: 2025-12-06*
-*最新デプロイ: @231*
+*最新デプロイ: @238*

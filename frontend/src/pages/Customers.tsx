@@ -17,13 +17,12 @@ import { DataGrid, GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { Add as AddIcon, Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import { CustomerForm } from '../components/Customer/CustomerForm';
 import { CustomerDrawer } from '../components/Customer/CustomerDrawer';
+import { useCustomerData } from '../contexts/CustomerDataContext';
 import {
     createCustomer,
     updateCustomer,
     deleteCustomer,
     getCustomersPaginated,
-    getAllCustomersForSearch,
-    invalidateAllCustomersCache
 } from '../api/customers';
 import type { Customer } from '../api/types';
 
@@ -64,14 +63,20 @@ function useDebounce<T>(value: T, delay: number): T {
 export const Customers: React.FC = () => {
     const navigate = useNavigate();
 
-    // Initial display data (fast - 100 records)
+    // グローバル顧客データコンテキストを使用
+    // CustomerDataProviderがApp.tsxでマウントされた時点で自動的に読み込み開始済み
+    const {
+        allCustomers,
+        isLoading: backgroundLoading,
+        isReady: searchReady,
+        reload: reloadCustomerData,
+        invalidate: invalidateCustomerData
+    } = useCustomerData();
+
+    // Initial display data (fast - 100 records) - fallback when context not ready
     const [initialCustomers, setInitialCustomers] = useState<Customer[]>([]);
     const [initialLoading, setInitialLoading] = useState(true);
     const [initialTotal, setInitialTotal] = useState(0);
-
-    // All customers for search (loaded in background)
-    const [allCustomers, setAllCustomers] = useState<Customer[] | null>(null);
-    const [backgroundLoading, setBackgroundLoading] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
     const [formOpen, setFormOpen] = useState(false);
@@ -94,12 +99,36 @@ export const Customers: React.FC = () => {
         };
     }, []);
 
-    // Step 1: Load initial 100 records immediately
+    // フォールバック読み込みが実行されたかどうかを追跡
+    const fallbackLoadDone = useRef(false);
+
+    // コンテキストからデータが利用可能かチェック
     useEffect(() => {
+        // コンテキストでデータが準備できていれば即座に表示可能
+        if (searchReady && allCustomers && allCustomers.length > 0) {
+            console.log('[Customers] Context data already available:', allCustomers.length, 'records');
+            setInitialLoading(false);
+            return;
+        }
+
+        // コンテキストが読み込み中であれば待機
+        if (backgroundLoading) {
+            console.log('[Customers] Waiting for context data...');
+            setInitialLoading(true);
+            return;
+        }
+
+        // 既にフォールバック読み込みが完了していればスキップ
+        if (fallbackLoadDone.current) {
+            return;
+        }
+
+        // コンテキストが読み込み中でもなく、データもない場合のみフォールバック
+        fallbackLoadDone.current = true;
         const loadInitialData = async () => {
             setInitialLoading(true);
             try {
-                console.log('[Customers] Loading initial 100 records...');
+                console.log('[Customers] Loading initial 100 records (fallback)...');
                 const result = await getCustomersPaginated(0, 100, true);
                 if (isMounted.current) {
                     setInitialCustomers(result.data || []);
@@ -119,38 +148,7 @@ export const Customers: React.FC = () => {
         };
 
         loadInitialData();
-    }, []);
-
-    // Step 2: Load all customers in background (for search)
-    useEffect(() => {
-        const loadAllCustomersInBackground = async () => {
-            // Wait a bit for initial render to complete
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            if (!isMounted.current) return;
-
-            setBackgroundLoading(true);
-
-            try {
-                console.log('[Customers] Loading all customers in background...');
-                const customers = await getAllCustomersForSearch();
-
-                if (isMounted.current) {
-                    setAllCustomers(customers);
-                    console.log(`[Customers] Background load complete: ${customers.length} records`);
-                }
-            } catch (err: any) {
-                console.error('[Customers] Background load failed:', err);
-                // Don't show error - initial data is already loaded
-            } finally {
-                if (isMounted.current) {
-                    setBackgroundLoading(false);
-                }
-            }
-        };
-
-        loadAllCustomersInBackground();
-    }, []);
+    }, [searchReady, allCustomers, backgroundLoading]);
 
     // Filtered results - use debounced query to prevent freezing
     const [filteredResults, setFilteredResults] = useState<Customer[]>([]);
@@ -262,23 +260,10 @@ export const Customers: React.FC = () => {
 
     const handleRefresh = useCallback(async () => {
         setInitialLoading(true);
-        invalidateAllCustomersCache();
-        setAllCustomers(null);
-
         try {
-            const result = await getCustomersPaginated(0, 100, true);
-            if (isMounted.current) {
-                setInitialCustomers(result.data || []);
-                setInitialTotal(result.total || 0);
-                showSnackbar('データを更新しました', 'success');
-            }
-
-            // Reload all in background
-            setBackgroundLoading(true);
-            const allData = await getAllCustomersForSearch();
-            if (isMounted.current) {
-                setAllCustomers(allData);
-            }
+            // グローバルコンテキストをリロード
+            await reloadCustomerData();
+            showSnackbar('データを更新しました', 'success');
         } catch (err: any) {
             if (isMounted.current) {
                 setError(err.message || '更新に失敗しました');
@@ -286,10 +271,9 @@ export const Customers: React.FC = () => {
         } finally {
             if (isMounted.current) {
                 setInitialLoading(false);
-                setBackgroundLoading(false);
             }
         }
-    }, []);
+    }, [reloadCustomerData]);
 
     const handleCreateCustomer = useCallback(async (data: any) => {
         try {
@@ -297,17 +281,15 @@ export const Customers: React.FC = () => {
             showSnackbar('顧客を登録しました', 'success');
             if (newCustomer) {
                 setInitialCustomers(prev => [newCustomer, ...prev]);
-                if (allCustomers) {
-                    setAllCustomers(prev => prev ? [newCustomer, ...prev] : [newCustomer]);
-                }
                 setInitialTotal(prev => prev + 1);
-                invalidateAllCustomersCache();
+                // グローバルコンテキストをリロード
+                reloadCustomerData();
             }
         } catch (err) {
             showSnackbar('顧客の登録に失敗しました', 'error');
             throw err;
         }
-    }, [allCustomers]);
+    }, [reloadCustomerData]);
 
     const handleUpdateCustomer = useCallback(async (id: string, data: any) => {
         try {
@@ -315,33 +297,29 @@ export const Customers: React.FC = () => {
             showSnackbar('顧客情報を更新しました', 'success');
             if (updatedCustomer) {
                 setInitialCustomers(prev => prev.map(c => c.id === id ? updatedCustomer : c));
-                if (allCustomers) {
-                    setAllCustomers(prev => prev ? prev.map(c => c.id === id ? updatedCustomer : c) : null);
-                }
-                invalidateAllCustomersCache();
+                // グローバルコンテキストをリロード
+                reloadCustomerData();
             }
             setDrawerOpen(false);
         } catch (err) {
             showSnackbar('顧客情報の更新に失敗しました', 'error');
             throw err;
         }
-    }, [allCustomers]);
+    }, [reloadCustomerData]);
 
     const handleDeleteCustomer = useCallback(async (id: string) => {
         try {
             await deleteCustomer(id);
             showSnackbar('顧客を削除しました', 'success');
             setInitialCustomers(prev => prev.filter(c => c.id !== id));
-            if (allCustomers) {
-                setAllCustomers(prev => prev ? prev.filter(c => c.id !== id) : null);
-            }
             setInitialTotal(prev => Math.max(0, prev - 1));
-            invalidateAllCustomersCache();
+            // グローバルコンテキストをリロード
+            reloadCustomerData();
             setDrawerOpen(false);
         } catch (err) {
             showSnackbar('顧客の削除に失敗しました', 'error');
         }
-    }, [allCustomers]);
+    }, [reloadCustomerData]);
 
     const showSnackbar = (message: string, severity: 'success' | 'error') => {
         setSnackbar({ open: true, message, severity });
@@ -367,8 +345,9 @@ export const Customers: React.FC = () => {
     ], []);
 
     const isSearching = searchQuery.trim().length > 0;
-    const totalCount = allCustomers ? allCustomers.length : initialTotal;
-    const searchReady = allCustomers !== null;
+    // バックグラウンド読み込み中は件数を表示せず、読み込み完了後に表示
+    const totalCount = allCustomers ? allCustomers.length : (backgroundLoading ? null : initialTotal);
+    // searchReadyはコンテキストから取得済み
 
     // Show error state
     if (error && !initialLoading) {
@@ -393,9 +372,11 @@ export const Customers: React.FC = () => {
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="body2" color="text.secondary">
-                            {isSearching
-                                ? `検索結果: ${displayData.length.toLocaleString()} 件 (全 ${totalCount.toLocaleString()} 件中)`
-                                : `全 ${totalCount.toLocaleString()} 件`
+                            {totalCount === null
+                                ? '読み込み中...'
+                                : isSearching
+                                    ? `検索結果: ${displayData.length.toLocaleString()} 件 (全 ${totalCount.toLocaleString()} 件中)`
+                                    : `全 ${totalCount.toLocaleString()} 件`
                             }
                         </Typography>
                         {backgroundLoading && (
