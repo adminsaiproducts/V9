@@ -155,7 +155,15 @@ clasp deploy            # Create new version
   - テーブル表示: 月次推移詳細、寺院別年間売上、分類別（小分類）
   - CSVデータ埋め込みスクリプト（`scripts/generate-sales-data.js`）
 
-## 5. 次のステップ (Phase 9+)
+### Phase 9: URL共有機能 ✅ (2025-12-06 完了)
+- [x] **検索状態のURL化**: `useSearchParams` による検索クエリのURL反映
+  - 顧客一覧: `#/customers?q=検索語` 形式
+  - ブラウザ戻る/進むボタンで検索状態を復元
+  - デバウンス（300ms）でURL更新頻度を抑制
+- [x] **共有ボタン**: 現在のURLをクリップボードにコピー
+- [x] **DeepLinkHandler拡張**: サーバーサイドからの検索クエリ対応
+
+## 5. 次のステップ (Phase 10+)
 
 ### 優先タスク
 1. **関係性機能完成**: マスターCSV読み込み、Firestoreインポート
@@ -258,4 +266,4 @@ node migration/scripts/regenerate-migration-data.js
 ---
 
 *最終更新: 2025-12-06*
-*最新デプロイ: @238*
+*最新デプロイ: @239*

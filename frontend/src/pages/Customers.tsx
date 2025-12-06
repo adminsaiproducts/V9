@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -12,9 +12,10 @@ import {
     IconButton,
     CircularProgress,
     Chip,
+    Tooltip,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRowParams } from '@mui/x-data-grid';
-import { Add as AddIcon, Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { Add as AddIcon, Search as SearchIcon, Clear as ClearIcon, Share as ShareIcon } from '@mui/icons-material';
 import { CustomerForm } from '../components/Customer/CustomerForm';
 import { CustomerDrawer } from '../components/Customer/CustomerDrawer';
 import { useCustomerData } from '../contexts/CustomerDataContext';
@@ -62,6 +63,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export const Customers: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // グローバル顧客データコンテキストを使用
     // CustomerDataProviderがApp.tsxでマウントされた時点で自動的に読み込み開始済み
@@ -82,7 +84,11 @@ export const Customers: React.FC = () => {
     const [formOpen, setFormOpen] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
+
+    // 検索クエリをURLパラメータから初期化
+    const urlQuery = searchParams.get('q') || '';
+    const [searchQuery, setSearchQuery] = useState(urlQuery);
+
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
@@ -91,6 +97,38 @@ export const Customers: React.FC = () => {
 
     // Debounce search query - 300ms delay to prevent freezing
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+    // URLパラメータの同期（デバウンス後のクエリが変わったらURLを更新）
+    const isInitialMount = useRef(true);
+    useEffect(() => {
+        // 初回マウント時はスキップ（URLからの読み込み時に二重更新を防ぐ）
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        const currentQ = searchParams.get('q') || '';
+        const newQ = debouncedSearchQuery.trim();
+
+        // URLと実際の検索クエリが異なる場合のみ更新
+        if (currentQ !== newQ) {
+            if (newQ) {
+                setSearchParams({ q: newQ }, { replace: true });
+            } else {
+                // 検索クエリが空の場合はパラメータを削除
+                searchParams.delete('q');
+                setSearchParams(searchParams, { replace: true });
+            }
+        }
+    }, [debouncedSearchQuery, searchParams, setSearchParams]);
+
+    // URLパラメータが外部から変更された場合（戻る/進むボタン）に検索クエリを同期
+    useEffect(() => {
+        const urlQ = searchParams.get('q') || '';
+        if (urlQ !== searchQuery) {
+            setSearchQuery(urlQ);
+        }
+    }, [searchParams]); // searchQueryを依存配列に入れない（無限ループ防止）
 
     const isMounted = useRef(true);
     useEffect(() => {
@@ -252,6 +290,19 @@ export const Customers: React.FC = () => {
         setSearchQuery('');
     }, []);
 
+    // 共有URLをクリップボードにコピー
+    const handleShareUrl = useCallback(() => {
+        const baseUrl = window.location.origin + window.location.pathname;
+        const hash = window.location.hash;
+        const shareUrl = baseUrl + hash;
+
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            showSnackbar('URLをクリップボードにコピーしました', 'success');
+        }).catch(() => {
+            showSnackbar('URLのコピーに失敗しました', 'error');
+        });
+    }, []);
+
     const handleRowClick = useCallback((params: GridRowParams) => {
         const customerId = params.row.id;
         const customerData = params.row;
@@ -394,6 +445,16 @@ export const Customers: React.FC = () => {
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="現在の検索条件を含むURLをコピー">
+                        <Button
+                            variant="outlined"
+                            startIcon={<ShareIcon />}
+                            onClick={handleShareUrl}
+                            size="small"
+                        >
+                            共有
+                        </Button>
+                    </Tooltip>
                     <Button
                         variant="outlined"
                         onClick={handleRefresh}

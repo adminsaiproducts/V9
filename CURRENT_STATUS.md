@@ -263,8 +263,12 @@ V10およびV11は開発環境の不安定さ（clasp + OneDrive問題、Script 
 | 2025-12-06 | FIX | Customers.tsx の totalCount ロジック修正（読み込み中は「読み込み中...」を表示） | ✅ Done |
 | 2025-12-06 | DEPLOY | Version 236 - ダッシュボードグラフ修正（寺院データソース） | ✅ Done |
 | 2025-12-06 | DEPLOY | Version 238 - 顧客件数表示修正 | ✅ Done |
+| 2025-12-06 | FEATURE | URL検索パラメータ対応（useSearchParams導入） | ✅ Done |
+| 2025-12-06 | FEATURE | 顧客一覧に共有ボタン追加（現在のURLをコピー） | ✅ Done |
+| 2025-12-06 | FEATURE | DeepLinkHandler拡張（検索クエリ対応） | ✅ Done |
+| 2025-12-06 | DEPLOY | Version 239 - URL検索パラメータ & 共有ボタン | ✅ Done |
 
 ---
 
 *最終更新: 2025-12-06*
-*最新デプロイ: @238*
+*最新デプロイ: @239*

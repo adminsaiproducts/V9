@@ -17,11 +17,13 @@ function doGet(e?: GoogleAppsScript.Events.DoGet) {
     // Parse deep-linking query parameters
     const view = params.view;
     const id = params.id;
+    const q = params.q;  // 検索クエリパラメータ
 
     // Create initial state object for deep-linking
     const initialState = {
       view: view || null,
       id: id || null,
+      q: q || null,  // 検索クエリを追加
       timestamp: new Date().toISOString()
     };
 
@@ -2316,6 +2318,8 @@ function api_getDeals(options?: {
   stage?: DealStage[];
   area?: Area[];
   assignedTo?: string;
+  customerId?: string;
+  customerName?: string;
   page?: number;
   pageSize?: number;
 }) {
@@ -2328,6 +2332,14 @@ function api_getDeals(options?: {
     // フィルタリング（削除済みを除外）
     let filtered = allDeals.filter(d => !d.deletedAt);
 
+    // 顧客IDでフィルタ（顧客詳細画面用）
+    if (options?.customerId) {
+      filtered = filtered.filter(d => d.customerId === options.customerId);
+    }
+    // 顧客名でフィルタ（顧客IDがない場合のフォールバック）
+    if (options?.customerName) {
+      filtered = filtered.filter(d => d.customerName === options.customerName);
+    }
     if (options?.stage?.length) {
       filtered = filtered.filter(d => options.stage!.includes(d.stage));
     }
@@ -2589,12 +2601,15 @@ function api_getPipelineSummary(options?: { area?: Area[]; assignedTo?: string }
 function api_getTemples() {
   try {
     const firestore = new FirestoreService();
+    // isActiveがfalseでないものを全て取得（isActiveフィールドがない場合も含む）
     const temples = firestore.queryDocuments('Temples', {
-      where: [{ field: 'isActive', op: '==', value: true }],
       orderBy: { field: 'name', direction: 'ASCENDING' }
     });
 
-    return JSON.stringify({ status: 'success', data: temples });
+    // isActive === false のものを除外
+    const activeTemples = temples.filter((t: any) => t.isActive !== false);
+
+    return JSON.stringify({ status: 'success', data: activeTemples });
   } catch (error: any) {
     Logger.log('Error getting temples: ' + error.message);
     return JSON.stringify({ status: 'error', message: error.message });
@@ -2609,13 +2624,15 @@ function api_getTemplesByArea(area: Area) {
     const firestore = new FirestoreService();
     const temples = firestore.queryDocuments('Temples', {
       where: [
-        { field: 'area', op: '==', value: area },
-        { field: 'isActive', op: '==', value: true }
+        { field: 'area', op: '==', value: area }
       ],
       orderBy: { field: 'name', direction: 'ASCENDING' }
     });
 
-    return JSON.stringify({ status: 'success', data: temples });
+    // isActive === false のものを除外
+    const activeTemples = temples.filter((t: any) => t.isActive !== false);
+
+    return JSON.stringify({ status: 'success', data: activeTemples });
   } catch (error: any) {
     Logger.log('Error getting temples by area: ' + error.message);
     return JSON.stringify({ status: 'error', message: error.message });
@@ -2744,7 +2761,7 @@ function migration_importDeals(jsonData: string) {
 }
 
 /**
- * 寺院マスタを一括インポート
+ * 寺院マスタを一括インポート（新スキーマ対応）
  */
 function migration_importTemples(jsonData: string) {
   try {
@@ -2756,27 +2773,51 @@ function migration_importTemples(jsonData: string) {
     const firestore = new FirestoreService();
     const now = new Date().toISOString();
     let imported = 0;
+    let updated = 0;
 
     for (const temple of temples) {
       if (!temple.name) continue;
 
       const id = temple.id || `TEMPLE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      firestore.createDocument('Temples', id, {
+      // 既存チェック
+      const existing = firestore.getDocument('Temples', id) as Record<string, any> | null;
+
+      const templeData = {
         id,
         name: temple.name,
+        mountainTitle: temple.mountainTitle || '',
         area: temple.area || 'その他',
+        kana: temple.kana || temple.furigana || '',
+        sect: temple.sect || '',
+        chiefPriest: temple.chiefPriest || '',
+        postalCode: temple.postalCode || '',
+        prefecture: temple.prefecture || '',
+        city: temple.city || '',
+        town: temple.town || '',
+        street: temple.street || '',
+        building: temple.building || '',
+        phone: temple.phone || '',
+        mobile: temple.mobile || '',
+        email: temple.email || '',
+        notes: temple.notes || '',
         isActive: temple.isActive !== false,
-        createdAt: now,
+        createdAt: existing?.createdAt || now,
         updatedAt: now,
-      });
+      };
 
-      imported++;
+      if (existing) {
+        firestore.updateDocument('Temples', id, templeData);
+        updated++;
+      } else {
+        firestore.createDocument('Temples', id, templeData);
+        imported++;
+      }
     }
 
     return JSON.stringify({
       status: 'success',
-      data: { total: temples.length, imported }
+      data: { total: temples.length, imported, updated }
     });
   } catch (error: any) {
     Logger.log('Error importing temples: ' + error.message);
@@ -2826,8 +2867,46 @@ function migration_getDealCount() {
   }
 }
 
+/**
+ * Google DriveのファイルIDから寺院マスタをインポート
+ * @param fileId Google DriveのファイルID
+ */
+function migration_importTemplesFromDrive(fileId: string) {
+  try {
+    // Google DriveからJSONファイルを読み込み
+    const file = DriveApp.getFileById(fileId);
+    const jsonData = file.getBlob().getDataAsString();
+
+    // 既存のインポート関数を呼び出し
+    return migration_importTemples(jsonData);
+  } catch (error: any) {
+    Logger.log('Error importing temples from Drive: ' + error.message);
+    return JSON.stringify({ status: 'error', message: error.message });
+  }
+}
+
+/**
+ * 寺院マスタの件数を取得
+ */
+function migration_getTempleCount() {
+  try {
+    const firestore = new FirestoreService();
+    const temples = firestore.queryDocuments('Temples', {});
+
+    return JSON.stringify({
+      status: 'success',
+      data: { count: temples.length }
+    });
+  } catch (error: any) {
+    Logger.log('Error getting temple count: ' + error.message);
+    return JSON.stringify({ status: 'error', message: error.message });
+  }
+}
+
 // Export migration functions
 (globalThis as any).migration_importDeals = migration_importDeals;
 (globalThis as any).migration_importTemples = migration_importTemples;
+(globalThis as any).migration_importTemplesFromDrive = migration_importTemplesFromDrive;
 (globalThis as any).migration_deleteAllDeals = migration_deleteAllDeals;
 (globalThis as any).migration_getDealCount = migration_getDealCount;
+(globalThis as any).migration_getTempleCount = migration_getTempleCount;
