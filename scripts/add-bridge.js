@@ -58,6 +58,7 @@ function api_mergeCustomers(primaryId, secondaryId, conflictResolutions) { retur
 function api_searchCustomers(query) { return globalThis.api_searchCustomers(query); }
 function api_createCustomer(data) { return globalThis.api_createCustomer(data); }
 function api_deleteCustomer(id) { return globalThis.api_deleteCustomer(id); }
+function api_getAllCustomers() { return globalThis.api_getAllCustomers(); }
 
 /* SFA (Sales Force Automation) - 商談管理 API */
 function api_getDeals(options) { return globalThis.api_getDeals(options); }

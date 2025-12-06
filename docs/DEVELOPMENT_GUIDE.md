@@ -653,7 +653,153 @@ V9 を唯一の開発環境とし、V10/V11 の知見のみを統合して継続
 - https://github.com/adminsaiproducts/V10
 - https://github.com/adminsaiproducts/V11
 
+## 11. 大量データ検索の最適化（2025-12-06）
+
+### 11.1 問題と症状
+
+**問題:**
+13,673件の顧客データを検索すると、UIが25秒以上フリーズする。
+
+**原因:**
+- 毎回サーバーに検索リクエストを送信
+- 全データをフィルタリングする際にUIスレッドがブロック
+
+### 11.2 解決策: ハイブリッドキャッシュ + チャンク分割
+
+**1. GAS側: 全顧客一括取得API**
+```typescript
+// src/main.ts
+globalThis.api_getAllCustomers = function(): Customer[] {
+  return CustomerService.getAllCustomers();
+};
+```
+
+**2. フロントエンド側: キャッシュ + バックグラウンド読み込み**
+```typescript
+// frontend/src/api/customers.ts
+let cachedAllCustomers: Customer[] | null = null;
+
+export async function getAllCustomersForSearch(): Promise<Customer[]> {
+  if (cachedAllCustomers) return cachedAllCustomers;
+
+  const result = await callGAS<Customer[]>('api_getAllCustomers');
+  cachedAllCustomers = result;
+  return result;
+}
+```
+
+**3. チャンク分割フィルタリング（UI非ブロック）**
+```typescript
+const filterInChunks = async (data: Customer[], query: string): Promise<Customer[]> => {
+  const CHUNK_SIZE = 2000;
+  const results: Customer[] = [];
+
+  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+    const chunk = data.slice(i, i + CHUNK_SIZE);
+    const chunkResults = chunk.filter(c => /* フィルタ条件 */);
+    results.push(...chunkResults);
+
+    // UIスレッドに制御を返す
+    if (i + CHUNK_SIZE < data.length) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
+  return results;
+};
+```
+
+**4. デバウンス（連続入力対策）**
+```typescript
+// 300ms デバウンス
+const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setDebouncedSearchQuery(searchQuery);
+  }, 300);
+  return () => clearTimeout(timer);
+}, [searchQuery]);
+```
+
+### 11.3 結果
+
+| 項目 | 改善前 | 改善後 |
+|------|--------|--------|
+| 検索時間 | 25秒+ | 即座 |
+| UIフリーズ | あり | なし |
+| 初回読み込み | 毎回API | 1回のみ |
+
+## 12. 売上ダッシュボードの実装（2025-12-06）
+
+### 12.1 アーキテクチャ
+
+```
+[CSV ファイル] → [generate-sales-data.js] → [salesData.ts] → [Dashboard.tsx]
+                     ビルド時に実行             TypeScriptモジュール    グラフ・テーブル表示
+```
+
+### 12.2 CSVデータの埋め込み
+
+**ビルド前スクリプト:**
+```javascript
+// scripts/generate-sales-data.js
+const csvContent = fs.readFileSync(CSV_PATH, 'utf-8');
+const tsContent = `const salesCSVData = ${JSON.stringify(csvContent)};
+export default salesCSVData;`;
+fs.writeFileSync(OUTPUT_FILE, tsContent);
+```
+
+### 12.3 CSV解析とサマリー計算
+
+```typescript
+// frontend/src/api/sales.ts
+export function parseSalesCSV(csvContent: string): SalesRecord[] {
+  // CSVをパース（引用符内のカンマを考慮）
+}
+
+export function calculateDashboardSummary(records: SalesRecord[]): SalesDashboardSummary {
+  // 総申込額、総入金額、入金率、月次推移、寺院別、エリア別等を計算
+}
+```
+
+### 12.4 Chart.js によるグラフ表示
+
+**インストール:**
+```bash
+npm install chart.js react-chartjs-2
+```
+
+**登録:**
+```typescript
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, ... } from 'chart.js';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
+```
+
+**使用例:**
+```typescript
+const monthlyChartData = {
+  labels: salesSummary.monthlyData.map(d => d.month),
+  datasets: [
+    { label: '申込額', data: salesSummary.monthlyData.map(d => d.applicationAmount) },
+    { label: '入金額', data: salesSummary.monthlyData.map(d => d.paymentAmount) },
+  ],
+};
+
+<Bar data={monthlyChartData} options={chartOptions} />
+```
+
+### 12.5 実装したグラフ
+
+| グラフ | タイプ | データ |
+|--------|--------|--------|
+| 月次推移 | 棒グラフ | 申込額・入金額の月別推移 |
+| 大分類別構成比 | 円グラフ | 樹木墓、広報、その他等 |
+| エリア別売上 | 棒グラフ | 神奈川、東京、埼玉、千葉 |
+| 寺院別TOP10 | 横棒グラフ | 売上上位10寺院 |
+
 ---
 
-*最終更新: 2025-12-05*
+*最終更新: 2025-12-06*
 *作成者: Claude Code*

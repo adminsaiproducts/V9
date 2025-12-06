@@ -216,8 +216,31 @@ function invalidateCustomerCache() {
   const cache = CacheService.getScriptCache();
   // Remove all customer-related cache keys
   cache.remove('customers_all');
-  // Note: We can't enumerate cache keys, so paginated cache will expire naturally
+  // Remove common paginated cache keys
+  for (let page = 0; page < 20; page++) {
+    for (const size of [50, 100, 500, 1000]) {
+      cache.remove(`customers_p${page}_s${size}__`);
+    }
+  }
   Logger.log('[Cache INVALIDATED] customers');
+}
+
+/**
+ * API: Clear all caches (for debugging/troubleshooting)
+ */
+function api_clearCache() {
+  try {
+    invalidateCustomerCache();
+    return JSON.stringify({
+      status: 'success',
+      message: 'Cache cleared successfully'
+    });
+  } catch (error: any) {
+    return JSON.stringify({
+      status: 'error',
+      message: error.message
+    });
+  }
 }
 
 /**
@@ -275,19 +298,21 @@ function api_getCustomers() {
   });
 }
 
-function api_getCustomersPaginated(pageOrOptions: number | { page?: number; pageSize?: number; sortField?: string; sortOrder?: string }, pageSizeArg?: number, sortFieldArg?: string, sortOrderArg?: string) {
+function api_getCustomersPaginated(pageOrOptions: number | { page?: number; pageSize?: number; sortField?: string; sortOrder?: string; forceRefresh?: boolean }, pageSizeArg?: number, sortFieldArg?: string, sortOrderArg?: string) {
   // Handle both object format and individual arguments
   let page: number;
   let pageSize: number;
   let sortField: string | undefined;
   let sortOrder: string | undefined;
+  let forceRefresh: boolean = false;
 
   if (typeof pageOrOptions === 'object' && pageOrOptions !== null) {
-    // Object format: { page, pageSize, sortField, sortOrder }
+    // Object format: { page, pageSize, sortField, sortOrder, forceRefresh }
     page = Number(pageOrOptions.page) || 0;
     pageSize = Number(pageOrOptions.pageSize) || 50;
     sortField = pageOrOptions.sortField;
     sortOrder = pageOrOptions.sortOrder;
+    forceRefresh = pageOrOptions.forceRefresh || false;
   } else {
     // Individual arguments format
     page = Number(pageOrOptions) || 0;
@@ -299,6 +324,11 @@ function api_getCustomersPaginated(pageOrOptions: number | { page?: number; page
   // Validate page and pageSize to prevent NaN
   if (isNaN(page) || page < 0) page = 0;
   if (isNaN(pageSize) || pageSize <= 0) pageSize = 50;
+
+  // Clear cache if forceRefresh is true
+  if (forceRefresh) {
+    invalidateCustomerCache();
+  }
 
   const cacheKey = `customers_p${page}_s${pageSize}_${sortField || ''}_${sortOrder || ''}`;
 
@@ -317,6 +347,7 @@ function api_getCustomersPaginated(pageOrOptions: number | { page?: number; page
         status: 'success',
         data: result.data.map(c => ({
           id: c.id,
+          trackingNo: c.trackingNo || c.id || '',
           name: c.name || '',
           nameKana: c.nameKana || '',
           address: formatAddressForList(c.address),
@@ -1203,6 +1234,7 @@ function batchImport() {
 (globalThis as any).api_getCustomerById = api_getCustomerById;
 (globalThis as any).api_updateCustomer = api_updateCustomer;
 (globalThis as any).api_debugFirestore = api_debugFirestore;
+(globalThis as any).api_clearCache = api_clearCache;
 (globalThis as any).migration_deleteAllCustomers = migration_deleteAllCustomers;
 (globalThis as any).migration_importCustomers = migration_importCustomers;
 (globalThis as any).migration_importCustomersBatch = migration_importCustomersBatch;
@@ -1995,31 +2027,132 @@ function api_mergeCustomers(
   }
 }
 
+// Search index cache key
+const SEARCH_INDEX_CACHE_KEY = 'search_index_v1';
+const SEARCH_INDEX_CACHE_TTL = 600; // 10 minutes
+
 /**
- * Search customers by query (name, kana, phone, email)
+ * Get or build search index (cached)
+ * Returns minimal customer data for fast searching
+ */
+function getSearchIndex(): Array<{
+  id: string;
+  trackingNo: string;
+  name: string;
+  kana: string;
+  phone: string;
+  email: string;
+  address: string;
+}> {
+  const cache = CacheService.getScriptCache();
+
+  // Try to get from cache (chunked due to 100KB limit)
+  const chunk1 = cache.get(SEARCH_INDEX_CACHE_KEY + '_1');
+  const chunk2 = cache.get(SEARCH_INDEX_CACHE_KEY + '_2');
+  const chunk3 = cache.get(SEARCH_INDEX_CACHE_KEY + '_3');
+
+  if (chunk1) {
+    try {
+      const combined = (chunk1 || '') + (chunk2 || '') + (chunk3 || '');
+      const parsed = JSON.parse(combined);
+      Logger.log(`[Search] Cache HIT - ${parsed.length} records`);
+      return parsed;
+    } catch (e) {
+      Logger.log('[Search] Cache parse error, rebuilding...');
+    }
+  }
+
+  // Build search index from Firestore
+  Logger.log('[Search] Cache MISS - Building search index...');
+  const customerService = new CustomerService();
+  const allCustomers = customerService.getAllCustomers();
+
+  // Create minimal search index
+  const searchIndex = allCustomers.map((c: any) => ({
+    id: c.id,
+    trackingNo: c.trackingNo || c.id || '',
+    name: c.name || '',
+    kana: c.nameKana || c.kana || '',
+    phone: normalizePhone(extractCleanedValue(c.phone) || extractCleanedValue(c.mobile) || ''),
+    email: extractCleanedValue(c.email) || '',
+    address: formatAddressForList(c.address)
+  }));
+
+  Logger.log(`[Search] Built index with ${searchIndex.length} records`);
+
+  // Cache in chunks (100KB limit per key)
+  try {
+    const jsonStr = JSON.stringify(searchIndex);
+    const chunkSize = 90000; // 90KB per chunk to be safe
+
+    const chunks = [];
+    for (let i = 0; i < jsonStr.length; i += chunkSize) {
+      chunks.push(jsonStr.slice(i, i + chunkSize));
+    }
+
+    if (chunks.length <= 3) {
+      cache.put(SEARCH_INDEX_CACHE_KEY + '_1', chunks[0] || '', SEARCH_INDEX_CACHE_TTL);
+      cache.put(SEARCH_INDEX_CACHE_KEY + '_2', chunks[1] || '', SEARCH_INDEX_CACHE_TTL);
+      cache.put(SEARCH_INDEX_CACHE_KEY + '_3', chunks[2] || '', SEARCH_INDEX_CACHE_TTL);
+      Logger.log(`[Search] Cached in ${chunks.length} chunks`);
+    } else {
+      Logger.log(`[Search] Too large to cache (${chunks.length} chunks needed)`);
+    }
+  } catch (e: any) {
+    Logger.log('[Search] Cache write error: ' + e.message);
+  }
+
+  return searchIndex;
+}
+
+/**
+ * Search customers by query (name, kana, phone, email, trackingNo)
+ * Uses cached search index for fast performance
  */
 function api_searchCustomers(query: string) {
   try {
-    const customerService = new CustomerService();
-    const result = customerService.listCustomersPaginated(0, 10000);
+    const startTime = Date.now();
+    Logger.log(`[api_searchCustomers] Searching for: ${query}`);
+
+    // Get cached search index
+    const searchIndex = getSearchIndex();
+    const indexTime = Date.now() - startTime;
+    Logger.log(`[api_searchCustomers] Index loaded in ${indexTime}ms`);
 
     const normalizedQuery = query.toLowerCase();
 
-    const matches = result.data.filter((c: any) => {
-      const name = (c.name || '').toLowerCase();
-      const kana = (c.nameKana || '').toLowerCase();
-      const phone = normalizePhone(extractCleanedValue(c.phone) || extractCleanedValue(c.mobile) || '');
-      const email = (extractCleanedValue(c.email) || '').toLowerCase();
+    // Fast search on index
+    const matchIds = searchIndex
+      .filter((c) => {
+        return c.trackingNo.toLowerCase().includes(normalizedQuery) ||
+               c.name.toLowerCase().includes(normalizedQuery) ||
+               c.kana.toLowerCase().includes(normalizedQuery) ||
+               c.phone.includes(normalizePhone(query)) ||
+               c.email.toLowerCase().includes(normalizedQuery) ||
+               c.address.toLowerCase().includes(normalizedQuery);
+      })
+      .map(c => c.id);
 
-      return name.includes(normalizedQuery) ||
-             kana.includes(normalizedQuery) ||
-             phone.includes(normalizePhone(query)) ||
-             email.includes(normalizedQuery);
+    Logger.log(`[api_searchCustomers] Found ${matchIds.length} matches in ${Date.now() - startTime}ms`);
+
+    // Return minimal data for list display (already have it in index)
+    const matches = searchIndex
+      .filter(c => matchIds.includes(c.id))
+      .slice(0, 200);
+
+    // Sort: numeric trackingNo first
+    matches.sort((a, b) => {
+      const isANumeric = /^\d/.test(a.trackingNo);
+      const isBNumeric = /^\d/.test(b.trackingNo);
+      if (isANumeric && !isBNumeric) return -1;
+      if (!isANumeric && isBNumeric) return 1;
+      return a.trackingNo.localeCompare(b.trackingNo, 'ja', { numeric: true });
     });
 
     return JSON.stringify({
       status: 'success',
-      data: matches.slice(0, 50).map((c: any) => transformCustomerForDisplay(c))
+      data: matches,
+      total: matchIds.length
     });
   } catch (error: any) {
     Logger.log('Error searching customers: ' + error.message);
@@ -2103,6 +2236,37 @@ function api_deleteCustomer(id: string) {
 (globalThis as any).api_searchCustomers = api_searchCustomers;
 (globalThis as any).api_createCustomer = api_createCustomer;
 (globalThis as any).api_deleteCustomer = api_deleteCustomer;
+
+/**
+ * Get ALL customers for client-side search
+ * Returns all customers from Firestore for frontend caching
+ * This enables instant client-side search without server round-trips
+ */
+function api_getAllCustomers() {
+  try {
+    const startTime = Date.now();
+    Logger.log('[api_getAllCustomers] Fetching all customers...');
+
+    const customerService = new CustomerService();
+    const allCustomers = customerService.getAllCustomers();
+
+    Logger.log(`[api_getAllCustomers] Fetched ${allCustomers.length} customers in ${Date.now() - startTime}ms`);
+
+    return JSON.stringify({
+      status: 'success',
+      data: allCustomers,
+      total: allCustomers.length
+    });
+  } catch (error: any) {
+    Logger.log('[api_getAllCustomers] Error: ' + error.message);
+    return JSON.stringify({
+      status: 'error',
+      message: error.message
+    });
+  }
+}
+
+(globalThis as any).api_getAllCustomers = api_getAllCustomers;
 
 // ============================================================
 // SFA (Sales Force Automation) API - 商談管理
